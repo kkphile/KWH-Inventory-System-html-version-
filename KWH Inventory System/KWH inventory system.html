@@ -206,8 +206,8 @@
                     <input type="search" list="si-prod-list" id="si-product" placeholder="Search...">
                     <datalist id="si-prod-list"></datalist>
                     <label>Catalog Number (Optional):</label><input type="search" id="si-lot" placeholder="Optional">
-                    <label>Expiry Date (Optional):</label><input type="date" id="si-exp" min="2000-01-01" max="2099-12-31" onkeydown="return false">
-                    <label>Received Date:</label><input type="date" id="si-recv" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>Expiry Date (Optional):</label><input type="date" id="si-exp" min="2000-01-01" max="2099-12-31">
+                    <label>Received Date:</label><input type="date" id="si-recv" min="2000-01-01" max="2099-12-31">
                     <label>Qty:</label><input type="number" id="si-qty" value="1" min="1">
                 </div>
                 <div class="scan-box">
@@ -218,9 +218,9 @@
             </div>
 
             <div id="page-scan-out" class="hidden">
-                <h2 class="page-title">Scan Out</h2>
+                <h2 class="page-title">Scan Out (Consume)</h2>
                 <div class="form-grid" style="margin-bottom: 20px;">
-                    <label>Out-Stock Date:</label><input type="date" id="so-date" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>Out-Stock Date:</label><input type="date" id="so-date" min="2000-01-01" max="2099-12-31">
                 </div>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                     
@@ -249,7 +249,7 @@
             </div>
 
             <div id="page-inventory" class="hidden">
-                <h2 class="page-title">Inventory Management</h2>
+                <h2 class="page-title">Inventory Management (Admin)</h2>
                 <div class="filter-bar">
                     <input type="search" list="inv-cat-list" id="inv-cat-filter" placeholder="Category..." py-change="inv_filter_changed" py-input="inv_filter_changed" style="width: 130px;">
                     <datalist id="inv-cat-list"></datalist>
@@ -282,8 +282,8 @@
                             <option value="Discarded">Discarded</option>
                             <option value="Flagged">Flagged</option>
                         </select>
-                        <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="2000-01-01" max="2099-12-31" onkeydown="return false">
-                        <label>Received Date:</label><input type="date" id="edit-recv" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                        <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="2000-01-01" max="2099-12-31">
+                        <label>Received Date:</label><input type="date" id="edit-recv" min="2000-01-01" max="2099-12-31">
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-warning" py-click="update_item">💾 Update Item</button>
@@ -321,7 +321,7 @@
             </div>
 
             <div id="page-audit" class="hidden">
-                <h2 class="page-title">Audit Log</h2>
+                <h2 class="page-title">System Action History (Audit Log)</h2>
                 <div class="filter-bar">
                     <select id="audit-filt-action" py-change="load_audit_table" style="width: 120px;">
                         <option value="All">All Actions</option>
@@ -394,16 +394,14 @@
     </div>
 
     <script>
-        // SMART UNSAVED CHANGES TRACKER (PROMINENT ALERTS)
         let dbHasUnsavedChanges = false;
         
         window.markDbChanged = function() {
             dbHasUnsavedChanges = true;
             let btn = document.getElementById('btn-save-db');
             if (btn) {
-                // THE FIX: Keeps the word "Save Database" visible
-                btn.innerHTML = '💾 Save Database (Unsaved) ⚠️';
-                btn.style.backgroundColor = ''; // Remove inline style so CSS class takes over
+                btn.innerHTML = '⚠️ Save Database (Unsaved) ⚠️';
+                btn.style.backgroundColor = ''; 
                 btn.classList.add('btn-unsaved-pulse');
             }
             let banner = document.getElementById('unsaved-banner');
@@ -424,7 +422,7 @@
         window.addEventListener('beforeunload', function (e) {
             if (dbHasUnsavedChanges) {
                 e.preventDefault();
-                e.returnValue = ''; // Browsers require this empty string to trigger the warning popup
+                e.returnValue = ''; 
             }
         });
 
@@ -701,14 +699,40 @@ def setup_stock_in_page():
     document.getElementById("si-recv").value = datetime.date.today().strftime("%Y-%m-%d")
 
 def receive_item(*args, **kwargs):
-    bc = document.getElementById("si-barcode").value.strip(); prod_name = document.getElementById("si-product").value.strip(); lot = document.getElementById("si-lot").value.strip() or "/"; exp = document.getElementById("si-exp").value.strip() or "/"; recv = document.getElementById("si-recv").value; qty = int(document.getElementById("si-qty").value)
-    if not bc or not recv or not prod_name: return
-    if not is_valid_date_range(exp) or not is_valid_date_range(recv): js.alert("Invalid year range (2000-2099)."); return
-    cur = db_conn.cursor(); cur.execute("SELECT catalog_id FROM Catalog WHERE product_name=?", (prod_name,)); cat_res = cur.fetchone()
-    if not cat_res: js.alert("Invalid product."); return
+    bc = document.getElementById("si-barcode").value.strip()
+    prod_name = document.getElementById("si-product").value.strip()
+    lot = document.getElementById("si-lot").value.strip() or "/"
+    exp = document.getElementById("si-exp").value.strip() or "/"
+    recv = document.getElementById("si-recv").value
+    
+    try:
+        qty = int(document.getElementById("si-qty").value)
+        if qty < 1: qty = 1
+    except:
+        qty = 1
+        
+    if not bc or not recv or not prod_name:
+        js.alert("🛑 Missing Information! Please fill in all required fields (Product, Received Date, Qty, and Barcode).")
+        return
+        
+    if not is_valid_date_range(exp) or not is_valid_date_range(recv):
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        return
+        
+    cur = db_conn.cursor()
+    cur.execute("SELECT catalog_id FROM Catalog WHERE product_name=?", (prod_name,))
+    cat_res = cur.fetchone()
+    if not cat_res: js.alert("🛑 Invalid product."); return
     cat_id = cat_res[0]
-    cur.execute("SELECT catalog_id FROM Inventory WHERE barcode_lot_number=? LIMIT 1", (bc,)); ext = cur.fetchone()
-    if ext and str(ext[0]) != str(cat_id): js.alert("Barcode conflict."); return
+    
+    cur.execute("SELECT catalog_id FROM Inventory WHERE barcode_lot_number=? LIMIT 1", (bc,))
+    ext = cur.fetchone()
+    if ext and str(ext[0]) != str(cat_id):
+        cur.execute("SELECT product_name FROM Catalog WHERE catalog_id=?", (ext[0],))
+        existing_prod = cur.fetchone()[0]
+        js.alert(f"🛑 Barcode Conflict!\n\nThe barcode '{bc}' is already assigned to '{existing_prod}'.\nYou cannot assign the same barcode to '{prod_name}'.")
+        return
+        
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for _ in range(qty):
         cur.execute("INSERT INTO Inventory (barcode_lot_number, catalog_id, catalog_number, expiry_date, received_date, status) VALUES (?, ?, ?, ?, ?, 'In_Stock')", (bc, cat_id, lot, exp, recv))
@@ -724,8 +748,8 @@ def setup_scan_out_page():
     load_so_manual_table()
 
 def so_filter_changed(*args, **kwargs):
-    cat = document.getElementById("so-cat-filter").value.strip(); cur = db_conn.cursor()
-    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    cat = document.getElementById("so-cat-filter").value.strip().lower(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("so-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     load_so_manual_table()
@@ -733,10 +757,10 @@ def so_filter_changed(*args, **kwargs):
 def so_clear_filters(*args, **kwargs): document.getElementById("so-cat-filter").value = ""; document.getElementById("so-prod-filter").value = ""; so_filter_changed()
 
 def load_so_manual_table(*args, **kwargs):
-    cat = document.getElementById("so-cat-filter").value.strip(); prod = document.getElementById("so-prod-filter").value.strip()
+    cat = document.getElementById("so-cat-filter").value.strip().lower(); prod = document.getElementById("so-prod-filter").value.strip().lower()
     q = "SELECT i.item_id, i.barcode_lot_number, c.product_name, i.catalog_number, i.expiry_date, i.received_date FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.status = 'In_Stock'"; p = []
-    if cat: q += " AND c.category = ?"; p.append(cat)
-    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
     html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot number</th><th onclick='sortTable(this, 2)'>Catalog Number</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th></tr>"
     for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p): 
         safe_bc = str(r[1]).replace("'", "\\'")
@@ -745,8 +769,13 @@ def load_so_manual_table(*args, **kwargs):
 
 def consume_item_via_scan(*args, **kwargs):
     bc = document.getElementById("so-barcode").value.strip(); out_date = document.getElementById("so-date").value
-    if not bc or not out_date: return
-    if not is_valid_date_range(out_date): js.alert("Invalid date."); return
+    if not bc or not out_date: 
+        js.alert("🛑 Missing Information! Please provide the Barcode and Out-Stock Date.")
+        return
+    if not is_valid_date_range(out_date): 
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        return
+        
     cur = db_conn.cursor(); cur.execute("SELECT status, item_id, catalog_id FROM Inventory WHERE barcode_lot_number=? AND status='In_Stock' ORDER BY expiry_date ASC LIMIT 1", (bc,))
     res = cur.fetchone()
     if res:
@@ -762,13 +791,22 @@ def consume_item_via_scan(*args, **kwargs):
             if sel and oldest and sel['dt'] > oldest['dt']:
                 if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): 
                     document.getElementById("so-barcode").value = ""; return
-        cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?"); cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Consumed', ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S")))
+        cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (item_id,)); cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Consumed', ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S")))
         db_conn.commit(); mark_dirty(); document.getElementById("so-barcode").value = ""; load_dashboard_home(); setup_scan_out_page()
     else: js.alert("Not In-Stock.")
 
 def consume_item_via_manual(*args, **kwargs):
     id = document.getElementById("so-selected-item-id").value; bc = document.getElementById("so-selected-barcode").value; out_date = document.getElementById("so-date").value
-    if not id or not out_date: return
+    if not id:
+        js.alert("🛑 Missing Information! Please select an item from the list first.")
+        return
+    if not out_date:
+        js.alert("🛑 Missing Information! Please provide the Out-Stock Date.")
+        return
+    if not is_valid_date_range(out_date): 
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        return
+        
     cur = db_conn.cursor(); cur.execute("SELECT catalog_id FROM Inventory WHERE item_id=?", (id,)); res = cur.fetchone()
     if res:
         cur.execute("SELECT item_id, catalog_number, expiry_date FROM Inventory WHERE catalog_id=? AND status='In_Stock'", (res[0],))
@@ -792,8 +830,8 @@ def setup_inventory_page():
     load_inventory_table()
 
 def inv_filter_changed(*args, **kwargs):
-    cat = document.getElementById("inv-cat-filter").value.strip(); cur = db_conn.cursor()
-    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    cat = document.getElementById("inv-cat-filter").value.strip().lower(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("inv-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     load_inventory_table()
@@ -802,12 +840,12 @@ def inv_clear_filters(*args, **kwargs): document.getElementById("inv-cat-filter"
 
 def load_inventory_table(*args, **kwargs):
     document.getElementById("edit-panel").classList.add("hidden")
-    cat = document.getElementById("inv-cat-filter").value.strip(); prod = document.getElementById("inv-prod-filter").value.strip(); stat = document.getElementById("inv-status-filter").value; bc = document.getElementById("inv-bc-filter").value.strip().lower()
+    cat = document.getElementById("inv-cat-filter").value.strip().lower(); prod = document.getElementById("inv-prod-filter").value.strip().lower(); stat = document.getElementById("inv-status-filter").value; bc = document.getElementById("inv-bc-filter").value.strip().lower()
     q = "SELECT i.item_id, i.barcode_lot_number, c.catalog_id, c.product_name, i.catalog_number, i.expiry_date, i.received_date, i.status FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"; p = []
     if stat != "All": q += " AND i.status = ?"; p.append(stat)
     if bc: q += " AND LOWER(i.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
-    if cat: q += " AND c.category = ?"; p.append(cat)
-    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
     html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot</th><th onclick='sortTable(this, 2)'>Catalog Num</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th><th>Status</th></tr>"
     for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p):
         safe_bc = str(r[1]).replace("'", "\\'"); safe_lot = str(r[4]).replace("'", "\\'"); safe_exp = str(r[5]).replace("'", "\\'"); safe_recv = str(r[6]).replace("'", "\\'"); safe_stat = str(r[7]).replace("'", "\\'")
@@ -817,8 +855,28 @@ def load_inventory_table(*args, **kwargs):
 
 def update_item(*args, **kwargs):
     id = document.getElementById("edit-id").value; bc = document.getElementById("edit-barcode").value.strip(); cat = document.getElementById("edit-product").value; lot = document.getElementById("edit-lot").value.strip(); exp = document.getElementById("edit-exp").value or "/"; recv = document.getElementById("edit-recv").value or "/"; stat = document.getElementById("edit-status").value
-    if not is_valid_date_range(exp) or not is_valid_date_range(recv): js.alert("Invalid year."); return
-    if js.confirm("Update?"): db_conn.execute("UPDATE Inventory SET barcode_lot_number=?, catalog_id=?, catalog_number=?, expiry_date=?, received_date=?, status=? WHERE item_id=?", (bc, cat, lot, exp, recv, stat, id)); db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Manual Edit', ?)", (id, bc, current_user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))); db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
+    
+    if not bc or not cat or not recv or not stat:
+        js.alert("🛑 Missing Information! Please fill in all required fields.")
+        return
+
+    if not is_valid_date_range(exp) or not is_valid_date_range(recv): 
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        return
+        
+    cur = db_conn.cursor()
+    cur.execute("SELECT catalog_id FROM Inventory WHERE barcode_lot_number=? AND item_id != ? LIMIT 1", (bc, id))
+    ext = cur.fetchone()
+    if ext and str(ext[0]) != str(cat):
+        cur.execute("SELECT product_name FROM Catalog WHERE catalog_id=?", (ext[0],))
+        existing_prod = cur.fetchone()[0]
+        js.alert(f"🛑 Barcode Conflict!\n\nThe barcode '{bc}' is already assigned to '{existing_prod}'.\nYou cannot mix different products under the same barcode.")
+        return
+        
+    if js.confirm("Update?"): 
+        db_conn.execute("UPDATE Inventory SET barcode_lot_number=?, catalog_id=?, catalog_number=?, expiry_date=?, received_date=?, status=? WHERE item_id=?", (bc, cat, lot, exp, recv, stat, id))
+        db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Manual Edit', ?)", (id, bc, current_user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
 
 def delete_item(*args, **kwargs):
     if js.confirm("Delete?"): db_conn.execute("DELETE FROM Inventory WHERE item_id=?", (document.getElementById("edit-id").value,)); db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
@@ -833,8 +891,8 @@ def setup_catalog_page():
     load_catalog_table()
 
 def cat_filter_changed(*args, **kwargs):
-    cat = document.getElementById("cat-filt-cat").value.strip(); cur = db_conn.cursor()
-    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    cat = document.getElementById("cat-filt-cat").value.strip().lower(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("cat-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     load_catalog_table()
@@ -842,10 +900,10 @@ def cat_filter_changed(*args, **kwargs):
 def cat_clear_filters(*args, **kwargs): document.getElementById("cat-filt-cat").value = ""; document.getElementById("cat-filt-prod").value = ""; cat_filter_changed()
 
 def load_catalog_table(*args, **kwargs):
-    cat = document.getElementById("cat-filt-cat").value.strip(); prod = document.getElementById("cat-filt-prod").value.strip()
+    cat = document.getElementById("cat-filt-cat").value.strip().lower(); prod = document.getElementById("cat-filt-prod").value.strip().lower()
     q = "SELECT c.catalog_id, c.product_name, c.category, COUNT(i.item_id) as current_stock, c.low_stock_threshold FROM Catalog c LEFT JOIN Inventory i ON c.catalog_id = i.catalog_id AND i.status = 'In_Stock' WHERE 1=1"; p = []
-    if cat: q += " AND c.category = ?"; p.append(cat)
-    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
     html = "<table><tr><th>Product</th><th>Category</th><th>Stock</th><th>Threshold</th></tr>"
     for r in db_conn.cursor().execute(q + " GROUP BY c.catalog_id ORDER BY c.product_name ASC", p):
         safe_n = str(r[1]).replace("'", "\\'"); safe_c = str(r[2]).replace("'", "\\'"); attr = f"onclick=\"selectCatalogForEdit({r[0]}, '{safe_n}', '{safe_c}', {r[4]})\"" if current_user['role'] == 'admin' else ""
@@ -872,6 +930,13 @@ def setup_audit_page():
     document.getElementById("audit-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     load_audit_table()
 
+def audit_cat_changed(*args, **kwargs):
+    cat = document.getElementById("audit-filt-cat").value.strip().lower(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
+    else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("audit-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_audit_table()
+
 def audit_clear_filters(*args, **kwargs):
     def safe_clear(elem_id):
         el = document.getElementById(elem_id)
@@ -885,13 +950,13 @@ def load_audit_table(*args, **kwargs):
     def safe_get(elem_id, default=""):
         el = document.getElementById(elem_id)
         return el.value if el else default
-    act = safe_get("audit-filt-action", "All"); cat = safe_get("audit-filt-cat").strip(); prod = safe_get("audit-filt-prod").strip()
+    act = safe_get("audit-filt-action", "All"); cat = safe_get("audit-filt-cat").strip().lower(); prod = safe_get("audit-filt-prod").strip().lower()
     bc = safe_get("audit-filt-barcode").strip().lower(); start_dt = safe_get("audit-filt-start"); end_dt = safe_get("audit-filt-end")
     q = """SELECT COALESCE(c.product_name, 'Unknown'), a.barcode_lot_number, a.action, u.username, a.timestamp FROM AuditLog a LEFT JOIN Users u ON a.user_id = u.user_id LEFT JOIN Inventory i ON a.item_id = i.item_id LEFT JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"""; p = []
     if act != "All": q += " AND a.action = ?"; p.append(act)
     if bc: q += " AND LOWER(a.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
-    if cat: q += " AND c.category = ?"; p.append(cat)
-    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
     if start_dt and is_valid_date_range(start_dt): q += " AND date(a.timestamp) >= ?"; p.append(start_dt)
     if end_dt and is_valid_date_range(end_dt): q += " AND date(a.timestamp) <= ?"; p.append(end_dt)
     html = "<table><tr><th>Product</th><th>Barcode/Lot number</th><th>Action</th><th>User</th><th>Time</th></tr>"

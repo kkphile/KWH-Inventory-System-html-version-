@@ -38,7 +38,7 @@
         .nav-btn.logout { background-color: #c0392b; text-align: center; border-bottom: none;}
         .nav-btn.logout:hover { background-color: #e74c3c; border-left: none; }
         
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; overflow-x: hidden; position: relative; }
         .page-title { color: #2c3e50; border-bottom: 2px solid #bdc3c7; padding-bottom: 10px; margin-bottom: 20px; }
         
         .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 15px; align-items: center; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); max-width: 650px; }
@@ -73,18 +73,21 @@
         .dash-card-red { border-left: 5px solid #c0392b; }
         .dash-card-blue { border-left: 5px solid #2980b9; }
 
-        @keyframes pulseAlert {
-            0% { background-color: #c0392b; transform: scale(1); }
-            50% { background-color: #e74c3c; transform: scale(1.02); box-shadow: 0 0 15px rgba(231, 76, 60, 0.8); z-index: 10; border-left: 4px solid #fff; }
-            100% { background-color: #c0392b; transform: scale(1); }
+        @keyframes pulseAlertBtn {
+            0% { background-color: #c0392b; box-shadow: 0 0 0px rgba(231, 76, 60, 0); }
+            50% { background-color: #e74c3c; box-shadow: 0 0 15px rgba(231, 76, 60, 0.8); z-index: 10; }
+            100% { background-color: #c0392b; box-shadow: 0 0 0px rgba(231, 76, 60, 0); }
+        }
+
+        @keyframes pulseAlertBanner {
+            0% { background-color: #c0392b; }
+            50% { background-color: #e74c3c; box-shadow: 0 0 15px rgba(231, 76, 60, 0.8); }
+            100% { background-color: #c0392b; }
         }
         
         .btn-unsaved-pulse {
-            animation: pulseAlert 1.2s infinite !important;
+            animation: pulseAlertBtn 1.5s infinite !important;
             color: white !important;
-            font-weight: bold !important;
-            border-top: 1px solid #e74c3c !important;
-            border-bottom: 1px solid #e74c3c !important;
         }
 
         .top-warning-banner {
@@ -96,7 +99,7 @@
             font-size: 16px;
             margin: -30px -30px 20px -30px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            animation: pulseAlert 1.5s infinite;
+            animation: pulseAlertBanner 1.5s infinite; 
             display: none;
             z-index: 100;
         }
@@ -133,11 +136,11 @@
 
             <button class="nav-btn active" id="nav-home" py-click="nav_home">🏠 Dashboard Home</button>
             <button class="nav-btn admin-only" id="nav-stock-in" py-click="nav_stock_in">📦 Stock In</button>
-            <button class="nav-btn" id="nav-scan-out" py-click="nav_scan_out">📤 Scan Out</button>
-            <button class="nav-btn admin-only" id="nav-inventory" py-click="nav_inventory">📋 Manage Inventory</button>
+            <button class="nav-btn" id="nav-scan-out" py-click="nav_scan_out">📤 Stock Out</button>
+            <button class="nav-btn admin-only" id="nav-inventory" py-click="nav_inventory">📋 Inventory Management</button>
             
             <button class="nav-btn" id="nav-catalog" py-click="nav_catalog">📚 Product Catalog</button>
-            <button class="nav-btn" id="nav-audit" py-click="nav_audit">📜 System Audit Log</button>
+            <button class="nav-btn" id="nav-audit" py-click="nav_audit">📜 Audit Log</button>
             <button class="nav-btn admin-only" id="nav-users" py-click="nav_users" style="display: none;">👥 User Accounts</button>
             
             <button class="nav-btn" id="nav-settings" py-click="nav_settings">⚙️ System Settings</button>
@@ -206,8 +209,8 @@
                     <input type="search" list="si-prod-list" id="si-product" placeholder="Search...">
                     <datalist id="si-prod-list"></datalist>
                     <label>Catalog Number (Optional):</label><input type="search" id="si-lot" placeholder="Optional">
-                    <label>Expiry Date (Optional):</label><input type="date" id="si-exp" min="2000-01-01" max="2099-12-31">
-                    <label>Received Date:</label><input type="date" id="si-recv" min="2000-01-01" max="2099-12-31">
+                    <label>Expiry Date (Optional):</label><input type="date" id="si-exp" min="1000-01-01" max="9999-12-31">
+                    <label>Received Date:</label><input type="date" id="si-recv" min="1000-01-01" max="9999-12-31">
                     <label>Qty:</label><input type="number" id="si-qty" value="1" min="1">
                 </div>
                 <div class="scan-box">
@@ -218,9 +221,9 @@
             </div>
 
             <div id="page-scan-out" class="hidden">
-                <h2 class="page-title">Scan Out (Consume)</h2>
+                <h2 class="page-title">Stock Out</h2>
                 <div class="form-grid" style="margin-bottom: 20px;">
-                    <label>Out-Stock Date:</label><input type="date" id="so-date" min="2000-01-01" max="2099-12-31">
+                    <label>Stock Out Date:</label><input type="date" id="so-date" min="1000-01-01" max="9999-12-31">
                 </div>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                     
@@ -249,7 +252,7 @@
             </div>
 
             <div id="page-inventory" class="hidden">
-                <h2 class="page-title">Inventory Management (Admin)</h2>
+                <h2 class="page-title">Inventory Management</h2>
                 <div class="filter-bar">
                     <input type="search" list="inv-cat-list" id="inv-cat-filter" placeholder="Category..." py-change="inv_filter_changed" py-input="inv_filter_changed" style="width: 130px;">
                     <datalist id="inv-cat-list"></datalist>
@@ -282,8 +285,8 @@
                             <option value="Discarded">Discarded</option>
                             <option value="Flagged">Flagged</option>
                         </select>
-                        <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="2000-01-01" max="2099-12-31">
-                        <label>Received Date:</label><input type="date" id="edit-recv" min="2000-01-01" max="2099-12-31">
+                        <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="1000-01-01" max="9999-12-31">
+                        <label>Received Date:</label><input type="date" id="edit-recv" min="1000-01-01" max="9999-12-31">
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-warning" py-click="update_item">💾 Update Item</button>
@@ -304,24 +307,38 @@
                 </div>
                 <p class="admin-only" style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to load it into the form for editing or deletion.)</p>
                 <div id="catalog-table-container" style="max-height: 450px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 20px;"></div>
-                <div class="edit-panel admin-only" id="cat-manage-panel" style="max-width: 800px; margin-top: 0; display: none;">
+                
+                <div class="edit-panel admin-only" id="cat-manage-panel" style="max-width: 800px; margin-top: 0;">
                     <h3 style="color: #3498db; margin-top: 0;">Manage Product Details</h3>
                     <input type="hidden" id="cat-edit-id">
-                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                        <input type="text" id="cat-edit-name" placeholder="Product Name" style="flex: 2; padding: 8px;">
-                        <input type="search" list="cat-form-list" id="cat-edit-category" placeholder="Category" style="flex: 2; padding: 8px;">
-                        <datalist id="cat-form-list"></datalist>
-                        <input type="number" id="cat-edit-thresh" placeholder="Min Alert" style="flex: 1; padding: 8px;">
+                    
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px; text-align: left;">
+                        <div style="flex: 2;">
+                            <label style="font-weight:bold; color:var(--theme-color);">Product Name:</label><br>
+                            <input type="text" id="cat-edit-name" placeholder="Product Name" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-top: 5px;">
+                        </div>
+                        <div style="flex: 2;">
+                            <label style="font-weight:bold; color:var(--theme-color);">Category:</label><br>
+                            <input type="search" list="cat-form-list" id="cat-edit-category" placeholder="Category" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-top: 5px;">
+                            <datalist id="cat-form-list"></datalist>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight:bold; color:var(--theme-color);">Minimum Alert:</label><br>
+                            <input type="number" id="cat-edit-thresh" placeholder="Min Alert" value="0" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-top: 5px;">
+                        </div>
                     </div>
-                    <button class="btn-success" py-click="add_catalog_item">Add New</button>
-                    <button class="btn-warning" py-click="update_catalog_item">Update</button>
-                    <button class="btn-danger" py-click="delete_catalog_item">Delete</button>
-                    <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="clearCatalogForm()">Clear</button>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-success" py-click="add_catalog_item">➕ Add New</button>
+                        <button class="btn-warning" py-click="update_catalog_item">💾 Update Selected</button>
+                        <button class="btn-danger" py-click="delete_catalog_item">🗑️ Delete Selected</button>
+                        <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-left: auto;" onclick="clearCatalogForm()">Clear Form</button>
+                    </div>
                 </div>
             </div>
 
             <div id="page-audit" class="hidden">
-                <h2 class="page-title">System Action History (Audit Log)</h2>
+                <h2 class="page-title">Audit Log</h2>
                 <div class="filter-bar">
                     <select id="audit-filt-action" py-change="load_audit_table" style="width: 120px;">
                         <option value="All">All Actions</option>
@@ -338,8 +355,8 @@
                     <input type="search" id="audit-filt-barcode" placeholder="Barcode..." py-input="load_audit_table" style="width: 120px;">
                 </div>
                 <div class="filter-bar" style="margin-top: -5px;">
-                    <label>From:</label><input type="date" id="audit-filt-start" py-change="load_audit_table" min="2000-01-01" max="2099-12-31" onkeydown="return false">
-                    <label>To:</label><input type="date" id="audit-filt-end" py-change="load_audit_table" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>From:</label><input type="date" id="audit-filt-start" py-change="audit_date_changed" min="1000-01-01" max="9999-12-31" onkeydown="return false">
+                    <label>To:</label><input type="date" id="audit-filt-end" py-change="audit_date_changed" min="1000-01-01" max="9999-12-31" onkeydown="return false">
                     <button class="btn-warning" py-click="audit_clear_filters" style="margin-left: auto;">Clear Filters</button>
                 </div>
                 <div id="audit-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
@@ -380,7 +397,7 @@
                         <button class="btn-warning" py-click="change_my_password" style="width:100%;">Update</button>
                     </div>
                     <div class="edit-panel admin-only" id="admin-settings-panel" style="max-width: 400px; flex: 1; margin-top:0; display:none;">
-                        <h3>Appearance (Admin)</h3>
+                        <h3>Appearance</h3>
                         <div class="edit-grid" style="grid-template-columns: 100px 1fr;">
                             <label>Title:</label><input type="text" id="set-sys-title">
                             <label>Color:</label><input type="color" id="set-sys-color" style="height: 38px; cursor: pointer;">
@@ -400,7 +417,7 @@
             dbHasUnsavedChanges = true;
             let btn = document.getElementById('btn-save-db');
             if (btn) {
-                btn.innerHTML = '⚠️ Save Database (Unsaved) ⚠️';
+                btn.innerHTML = '💾 Save Database (Unsaved) ⚠️';
                 btn.style.backgroundColor = ''; 
                 btn.classList.add('btn-unsaved-pulse');
             }
@@ -483,9 +500,10 @@
         }
 
         function clearCatalogForm() {
-            document.getElementById("cat-edit-id").value = ""; document.getElementById("cat-edit-name").value = ""; 
-            document.getElementById("cat-edit-category").value = ""; document.getElementById("cat-edit-thresh").value = "0";
-            document.getElementById("cat-manage-panel").style.display = "none";
+            document.getElementById("cat-edit-id").value = ""; 
+            document.getElementById("cat-edit-name").value = ""; 
+            document.getElementById("cat-edit-category").value = ""; 
+            document.getElementById("cat-edit-thresh").value = "0";
         }
 
         function selectNoteForEdit(id, author, content) {
@@ -502,9 +520,10 @@
             document.getElementById("edit-status").value = status; document.getElementById("edit-panel").scrollIntoView({ behavior: 'smooth' });
         }
         function selectCatalogForEdit(catId, name, category, thresh) {
-            document.getElementById("cat-manage-panel").style.display = "block";
-            document.getElementById("cat-edit-id").value = catId; document.getElementById("cat-edit-name").value = name; 
-            document.getElementById("cat-edit-category").value = category; document.getElementById("cat-edit-thresh").value = thresh;
+            document.getElementById("cat-edit-id").value = catId; 
+            document.getElementById("cat-edit-name").value = name; 
+            document.getElementById("cat-edit-category").value = category; 
+            document.getElementById("cat-edit-thresh").value = thresh;
             document.getElementById("cat-manage-panel").scrollIntoView({ behavior: 'smooth' });
         }
         function selectManualItem(rowElement, itemId, barcode) {
@@ -541,7 +560,7 @@ def is_valid_date_range(d_str):
     if not d_str or d_str == "/": return True
     try:
         y = int(d_str.split("-")[0])
-        return 2000 <= y <= 2099
+        return 1000 <= y <= 9999
     except: return False
 
 def setup_database_tables():
@@ -716,7 +735,7 @@ def receive_item(*args, **kwargs):
         return
         
     if not is_valid_date_range(exp) or not is_valid_date_range(recv):
-        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
         return
         
     cur = db_conn.cursor()
@@ -770,10 +789,10 @@ def load_so_manual_table(*args, **kwargs):
 def consume_item_via_scan(*args, **kwargs):
     bc = document.getElementById("so-barcode").value.strip(); out_date = document.getElementById("so-date").value
     if not bc or not out_date: 
-        js.alert("🛑 Missing Information! Please provide the Barcode and Out-Stock Date.")
+        js.alert("🛑 Missing Information! Please provide the Barcode and Stock Out Date.")
         return
     if not is_valid_date_range(out_date): 
-        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
         return
         
     cur = db_conn.cursor(); cur.execute("SELECT status, item_id, catalog_id FROM Inventory WHERE barcode_lot_number=? AND status='In_Stock' ORDER BY expiry_date ASC LIMIT 1", (bc,))
@@ -801,10 +820,10 @@ def consume_item_via_manual(*args, **kwargs):
         js.alert("🛑 Missing Information! Please select an item from the list first.")
         return
     if not out_date:
-        js.alert("🛑 Missing Information! Please provide the Out-Stock Date.")
+        js.alert("🛑 Missing Information! Please provide the Stock Out Date.")
         return
     if not is_valid_date_range(out_date): 
-        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
         return
         
     cur = db_conn.cursor(); cur.execute("SELECT catalog_id FROM Inventory WHERE item_id=?", (id,)); res = cur.fetchone()
@@ -861,7 +880,7 @@ def update_item(*args, **kwargs):
         return
 
     if not is_valid_date_range(exp) or not is_valid_date_range(recv): 
-        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 2000 and 2099.")
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
         return
         
     cur = db_conn.cursor()
@@ -911,16 +930,55 @@ def load_catalog_table(*args, **kwargs):
     document.getElementById("catalog-table-container").innerHTML = html + "</table>"
 
 def add_catalog_item(*args, **kwargs):
-    n = document.getElementById("cat-edit-name").value.strip(); c = document.getElementById("cat-edit-category").value.strip(); t = document.getElementById("cat-edit-thresh").value
-    if n and c:
-        try: db_conn.execute("INSERT INTO Catalog (product_name, category, low_stock_threshold) VALUES (?, ?, ?)", (n, c, int(t))); db_conn.commit(); mark_dirty(); js.alert("Added!"); js.window.clearCatalogForm(); setup_catalog_page()
-        except: js.alert("Error.")
+    n = document.getElementById("cat-edit-name").value.strip()
+    c = document.getElementById("cat-edit-category").value.strip()
+    t = document.getElementById("cat-edit-thresh").value.strip()
+    
+    if not n or not c or not t:
+        js.alert("🛑 Missing Information! Please fill in Product Name, Category, and Minimum Alert.")
+        return
+        
+    try: 
+        db_conn.execute("INSERT INTO Catalog (product_name, category, low_stock_threshold) VALUES (?, ?, ?)", (n, c, int(t)))
+        db_conn.commit()
+        mark_dirty()
+        js.alert("Product Added!")
+        js.window.clearCatalogForm()
+        setup_catalog_page()
+    except sqlite3.IntegrityError: 
+        js.alert("🛑 Error: This Product Name already exists in the catalog!")
+    except Exception as e: 
+        js.alert(f"Error: {e}")
 
 def update_catalog_item(*args, **kwargs):
-    id = document.getElementById("cat-edit-id").value; n = document.getElementById("cat-edit-name").value.strip(); c = document.getElementById("cat-edit-category").value.strip(); t = document.getElementById("cat-edit-thresh").value
-    if id: db_conn.execute("UPDATE Catalog SET product_name=?, category=?, low_stock_threshold=? WHERE catalog_id=?", (n, c, int(t), id)); db_conn.commit(); mark_dirty(); js.alert("Updated!"); setup_catalog_page()
+    id = document.getElementById("cat-edit-id").value
+    n = document.getElementById("cat-edit-name").value.strip()
+    c = document.getElementById("cat-edit-category").value.strip()
+    t = document.getElementById("cat-edit-thresh").value.strip()
+    
+    if not id:
+        js.alert("🛑 Please click on a product from the table below to update it.")
+        return
+        
+    if not n or not c or not t:
+        js.alert("🛑 Missing Information! Please fill in Product Name, Category, and Minimum Alert.")
+        return
+        
+    try:
+        db_conn.execute("UPDATE Catalog SET product_name=?, category=?, low_stock_threshold=? WHERE catalog_id=?", (n, c, int(t), id))
+        db_conn.commit()
+        mark_dirty()
+        js.alert("Product Updated!")
+        setup_catalog_page()
+    except sqlite3.IntegrityError: 
+        js.alert("🛑 Error: This Product Name already exists in the catalog!")
+    except Exception as e: 
+        js.alert(f"Error: {e}")
 
 def delete_catalog_item(*args, **kwargs):
+    if not document.getElementById("cat-edit-id").value:
+        js.alert("🛑 Please click on a product from the table below to delete it.")
+        return
     if js.confirm("Delete?"): db_conn.execute("DELETE FROM Catalog WHERE catalog_id=?", (document.getElementById("cat-edit-id").value,)); db_conn.commit(); mark_dirty(); js.window.clearCatalogForm(); setup_catalog_page()
 
 def setup_audit_page():
@@ -944,6 +1002,16 @@ def audit_clear_filters(*args, **kwargs):
     el_act = document.getElementById("audit-filt-action")
     if el_act: el_act.value = "All"
     safe_clear("audit-filt-cat"); safe_clear("audit-filt-prod"); safe_clear("audit-filt-barcode"); safe_clear("audit-filt-start"); safe_clear("audit-filt-end")
+    load_audit_table()
+
+def audit_date_changed(*args, **kwargs):
+    start_val = document.getElementById("audit-filt-start").value.strip()
+    end_val = document.getElementById("audit-filt-end").value.strip()
+    
+    if (start_val and not is_valid_date_range(start_val)) or (end_val and not is_valid_date_range(end_val)):
+        js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
+        return
+        
     load_audit_table()
 
 def load_audit_table(*args, **kwargs):

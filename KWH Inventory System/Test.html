@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KWH Inventory System - Web Edition</title>
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2023.11.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2023.11.1/core.js"></script>
+
+    <style>
+        :root { --theme-color: #34495e; }
+
+        body { margin: 0; font-family: Arial, sans-serif; background-color: #ecf0f1; display: flex; height: 100vh; overflow: hidden; }
+        .hidden { display: none !important; }
+        
+        .admin-only { display: none; }
+        
+        button:hover { opacity: 0.9; cursor: pointer; }
+        
+        .center-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        .card { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        
+        .header { background-color: var(--theme-color); color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; transition: 0.3s; }
+        .card input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .card button { background-color: var(--theme-color); color: white; border: none; padding: 10px 20px; border-radius: 4px; width: 100%; font-size: 16px; margin-top: 10px; transition: 0.3s; }
+        
+        #dashboard-screen { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 250px; background-color: var(--theme-color); color: white; display: flex; flex-direction: column; padding-top: 20px; transition: 0.3s; }
+        
+        .sidebar h3 { text-align: center; margin-bottom: 5px; padding-bottom: 0; }
+        #user-display { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); color: white; }
+
+        .nav-btn { background: none; color: white; border: none; padding: 15px 20px; text-align: left; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.3s; display: block; width: 100%; box-sizing: border-box; }
+        .nav-btn:hover, .nav-btn.active { background-color: rgba(0,0,0,0.2); border-left: 4px solid #2ecc71; }
+        .nav-btn.save-db { background-color: #f39c12; margin-top: auto; text-align: center; font-weight: bold; }
+        .nav-btn.save-db:hover { background-color: #d68910; border-left: none; }
+        .nav-btn.logout { background-color: #c0392b; text-align: center; border-bottom: none;}
+        .nav-btn.logout:hover { background-color: #e74c3c; border-left: none; }
+        
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .page-title { color: #2c3e50; border-bottom: 2px solid #bdc3c7; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 15px; align-items: center; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); max-width: 650px; }
+        .form-grid label { font-weight: bold; text-align: right; color: var(--theme-color); }
+        .form-grid input, .form-grid select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        
+        .scan-box { background-color: #e8f8f5; border: 2px dashed #2ecc71; padding: 20px; margin-top: 20px; text-align: center; border-radius: 8px; max-width: 650px; }
+        .scan-box.out-box { background-color: #fdedec; border-color: #e74c3c; }
+        .scan-box input { font-size: 20px; text-align: center; width: 80%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        
+        .btn-success { background-color: #2ecc71; color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; }
+        .btn-danger { background-color: #e74c3c; color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; }
+        .btn-warning { background-color: #f39c12; color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; }
+        .btn-primary { background-color: var(--theme-color); color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; transition: 0.3s; }
+        
+        .filter-bar { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .filter-bar input, .filter-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); table-layout: fixed; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+        th { background-color: var(--theme-color); color: white; position: sticky; top: 0; z-index: 1; font-size: 15px; transition: 0.3s; cursor: pointer; user-select: none; }
+        th:hover { background-color: #2c3e50; }
+        tr:hover { background-color: #bdc3c7; cursor: pointer; }
+        .row-flagged { background-color: #ffb3b3 !important; }
+        
+        .edit-panel { background: #fdfefe; border: 2px solid #3498db; padding: 20px; border-radius: 8px; margin-top: 20px; max-width: 800px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .edit-grid { display: grid; grid-template-columns: 140px 1fr 140px 1fr; gap: 15px; align-items: center; margin-bottom: 20px; }
+        .edit-grid label { font-weight: bold; text-align: right; color: var(--theme-color); }
+        .edit-grid input, .edit-grid select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        
+        .dash-card { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-width: 400px; }
+        .dash-card-red { border-left: 5px solid #c0392b; }
+        .dash-card-blue { border-left: 5px solid #2980b9; }
+
+        @keyframes pulseAlert {
+            0% { background-color: #c0392b; transform: scale(1); }
+            50% { background-color: #e74c3c; transform: scale(1.02); box-shadow: 0 0 15px rgba(231, 76, 60, 0.8); z-index: 10; border-left: 4px solid #fff; }
+            100% { background-color: #c0392b; transform: scale(1); }
+        }
+        
+        .btn-unsaved-pulse {
+            animation: pulseAlert 1.2s infinite !important;
+            color: white !important;
+            font-weight: bold !important;
+            border-top: 1px solid #e74c3c !important;
+            border-bottom: 1px solid #e74c3c !important;
+        }
+
+        .top-warning-banner {
+            background-color: #e74c3c;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: -30px -30px 20px -30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            animation: pulseAlert 1.5s infinite;
+            display: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="db-loader-screen" class="center-wrapper">
+        <div class="card">
+            <div class="header"><h2 id="sys-header-display" style="margin: 0;">KWH Inventory System</h2></div>
+            <div style="border: 2px dashed var(--theme-color); padding: 20px; background: #f8f9fa;">
+                <p><strong>Select Database File</strong></p>
+                <input type="file" id="db-upload" accept=".db">
+            </div>
+            <div id="loading-msg" style="color: #2ecc71; font-weight: bold; margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <div id="login-screen" class="center-wrapper hidden">
+        <div class="card">
+            <div class="header"><h2 style="margin: 0;">System Login</h2></div>
+            <input type="text" id="username" placeholder="Username" autofocus>
+            <input type="password" id="password" placeholder="Password">
+            <button id="login-btn" py-click="attempt_login">Login</button>
+            <div id="error-msg" style="color: #e74c3c; margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <div id="dashboard-screen" class="hidden">
+        
+        <div class="sidebar">
+            <h3 id="sys-title-display">KWH Inventory System</h3>
+            <div id="user-display"></div>
+
+            <button class="nav-btn active" id="nav-home" py-click="nav_home">🏠 Dashboard Home</button>
+            <button class="nav-btn admin-only" id="nav-stock-in" py-click="nav_stock_in">📦 Stock In</button>
+            <button class="nav-btn" id="nav-scan-out" py-click="nav_scan_out">📤 Scan Out</button>
+            <button class="nav-btn admin-only" id="nav-inventory" py-click="nav_inventory">📋 Manage Inventory</button>
+            
+            <button class="nav-btn" id="nav-catalog" py-click="nav_catalog">📚 Product Catalog</button>
+            <button class="nav-btn" id="nav-audit" py-click="nav_audit">📜 System Audit Log</button>
+            <button class="nav-btn admin-only" id="nav-users" py-click="nav_users" style="display: none;">👥 User Accounts</button>
+            
+            <button class="nav-btn" id="nav-settings" py-click="nav_settings">⚙️ System Settings</button>
+            <button class="nav-btn save-db" id="btn-save-db" py-click="download_database">💾 Save Database</button>
+            <button class="nav-btn logout" py-click="logout">🚪 Log Out</button>
+        </div>
+
+        <div class="main-content">
+            
+            <div id="unsaved-banner" class="top-warning-banner">⚠️ WARNING: You have unsaved changes! Please click 'Save Database' on the left to prevent data loss. ⚠️</div>
+
+            <div id="page-home">
+                <h2 class="page-title">Dashboard Overview</h2>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    
+                    <div class="dash-card dash-card-red">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 id="alert-title" style="color: #c0392b; margin: 0;">⚠️ Low Stock Alerts</h3>
+                            <span id="alert-badge" style="background-color: #e74c3c; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: none;"></span>
+                        </div>
+                        <div id="dash-alerts-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd;">
+                            <div id="dash-alerts-table"></div>
+                        </div>
+                    </div>
+
+                    <div class="dash-card dash-card-blue">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="color: #2980b9; margin: 0;">📢 Lab Notice Board</h3>
+                            <button py-click="nav_notes" style="background-color: #bdc3c7; color: #2c3e50; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer;">⚙️ Manage/Edit</button>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="search" id="dash-notice-input" placeholder="Type an announcement..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <button id="btn-post-notice" class="btn-primary" py-click="post_notice" style="margin-top: 0; padding: 8px 15px; width: auto;">Post</button>
+                        </div>
+                        <div id="dash-notices-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd;">
+                            <div id="dash-notices-table"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-notes" class="hidden">
+                <h2 class="page-title">Manage Notice Board History</h2>
+                <button class="btn-primary" py-click="nav_home" style="margin-bottom: 15px; background-color: #95a5a6; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: white;">⬅️ Back to Dashboard</button>
+                <div id="notes-table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 20px;"></div>
+                <div id="notes-edit-panel" class="edit-panel hidden">
+                    <h3 style="color: #f39c12; margin-top: 0;">Edit Selected Note</h3>
+                    <input type="hidden" id="note-edit-id">
+                    <input type="hidden" id="note-edit-author">
+                    <div class="edit-grid" style="grid-template-columns: 100px 1fr;">
+                        <label>Message:</label><input type="text" id="note-edit-content">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="btn-update-notice" class="btn-warning" py-click="update_note">💾 Update</button>
+                        <button class="btn-danger" py-click="delete_note">🗑️ Delete</button>
+                        <button class="admin-only" id="btn-clear-all-notes" style="display: none; background: #8e44ad; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px;" py-click="clear_all_notes">🧹 Clear ALL</button>
+                        <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="document.getElementById('notes-edit-panel').classList.add('hidden')">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-stock-in" class="hidden">
+                <h2 class="page-title">Rapid Scan In-Stock</h2>
+                <div class="form-grid">
+                    <label>Product:</label>
+                    <input type="search" list="si-prod-list" id="si-product" placeholder="Search...">
+                    <datalist id="si-prod-list"></datalist>
+                    <label>Catalog Number (Optional):</label><input type="search" id="si-lot" placeholder="Optional">
+                    <label>Expiry Date (Optional):</label><input type="date" id="si-exp" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>Received Date:</label><input type="date" id="si-recv" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>Qty:</label><input type="number" id="si-qty" value="1" min="1">
+                </div>
+                <div class="scan-box">
+                    <label style="font-weight: bold; font-size: 18px;">Scan Barcode/Lot number</label><br><br>
+                    <input type="search" id="si-barcode" placeholder="Scan here..."><br>
+                    <button id="btn-si-add" class="btn-success" py-click="receive_item">Add to Inventory</button>
+                </div>
+            </div>
+
+            <div id="page-scan-out" class="hidden">
+                <h2 class="page-title">Scan Out</h2>
+                <div class="form-grid" style="margin-bottom: 20px;">
+                    <label>Out-Stock Date:</label><input type="date" id="so-date" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                </div>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                    
+                    <div class="scan-box out-box" style="flex: 1; min-width: 300px; margin-top: 0; height: max-content;">
+                        <label style="font-weight: bold; font-size: 18px; color: #c0392b;">Method A: Rapid Scan</label><br><br>
+                        <input type="search" id="so-barcode" placeholder="Scan here..."><br>
+                        <button id="btn-so-consume" class="btn-danger" py-click="consume_item_via_scan">Consume Item</button>
+                    </div>
+
+                    <div style="flex: 2; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 2px solid #bdc3c7; height: max-content;">
+                        <label style="font-weight: bold; font-size: 18px; color: var(--theme-color);">Method B: Manual Selection</label><br><br>
+                        <div class="filter-bar" style="box-shadow: none; border: 1px solid #ddd; padding: 10px;">
+                            <input type="search" list="so-cat-list" id="so-cat-filter" placeholder="Category..." py-change="so_filter_changed" py-input="so_filter_changed" style="width: 130px;">
+                            <datalist id="so-cat-list"></datalist>
+                            <input type="search" list="so-prod-list" id="so-prod-filter" placeholder="Product..." py-change="load_so_manual_table" py-input="load_so_manual_table" style="width: 150px;">
+                            <datalist id="so-prod-list"></datalist>
+                            <button class="btn-warning" py-click="so_clear_filters">Clear</button>
+                        </div>
+                        <div id="so-manual-table-container" style="max-height: 350px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #ddd;"></div>
+                        <input type="hidden" id="so-selected-item-id">
+                        <input type="hidden" id="so-selected-barcode">
+                        <button class="btn-danger" py-click="consume_item_via_manual" style="width: 100%; margin-top:10px;">Consume Selected Item</button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="page-inventory" class="hidden">
+                <h2 class="page-title">Inventory Management</h2>
+                <div class="filter-bar">
+                    <input type="search" list="inv-cat-list" id="inv-cat-filter" placeholder="Category..." py-change="inv_filter_changed" py-input="inv_filter_changed" style="width: 130px;">
+                    <datalist id="inv-cat-list"></datalist>
+                    <input type="search" list="inv-prod-list" id="inv-prod-filter" placeholder="Product..." py-change="load_inventory_table" py-input="load_inventory_table" style="width: 150px;">
+                    <datalist id="inv-prod-list"></datalist>
+                    <select id="inv-status-filter" py-change="load_inventory_table" style="width: 100px;">
+                        <option value="All">All</option>
+                        <option value="In_Stock" selected>In_Stock</option>
+                        <option value="Consumed">Consumed</option>
+                        <option value="Discarded">Discarded</option>
+                        <option value="Flagged">Flagged</option>
+                    </select>
+                    <input type="search" id="inv-bc-filter" placeholder="Barcode..." py-input="load_inventory_table" style="width: 110px;">
+                    <button class="btn-warning" py-click="inv_clear_filters">Clear</button>
+                </div>
+                <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to Edit. Click table headers to sort.)</p>
+                <div id="inventory-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
+                
+                <div id="edit-panel" class="edit-panel hidden">
+                    <h3 style="color: #3498db; margin-top: 0;">Edit Item</h3>
+                    <input type="hidden" id="edit-id">
+                    <div class="edit-grid" style="grid-template-columns: 140px 1fr 140px 1fr;">
+                        <label>Barcode/Lot number:</label><input type="text" id="edit-barcode">
+                        <label>Product:</label><select id="edit-product"></select>
+                        <label>Catalog Number (Optional):</label><input type="text" id="edit-lot">
+                        <label>Status:</label>
+                        <select id="edit-status">
+                            <option value="In_Stock">In_Stock</option>
+                            <option value="Consumed">Consumed</option>
+                            <option value="Discarded">Discarded</option>
+                            <option value="Flagged">Flagged</option>
+                        </select>
+                        <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                        <label>Received Date:</label><input type="date" id="edit-recv" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-warning" py-click="update_item">💾 Update Item</button>
+                        <button class="btn-danger" py-click="delete_item">🗑️ Delete Item</button>
+                        <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="document.getElementById('edit-panel').classList.add('hidden')">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-catalog" class="hidden">
+                <h2 class="page-title">Product Catalog</h2>
+                <div class="filter-bar">
+                    <input type="search" list="cat-filt-cat-list" id="cat-filt-cat" placeholder="Category..." py-change="cat_filter_changed" py-input="cat_filter_changed" style="width: 130px;">
+                    <datalist id="cat-filt-cat-list"></datalist>
+                    <input type="search" list="cat-filt-prod-list" id="cat-filt-prod" placeholder="Product..." py-change="load_catalog_table" py-input="load_catalog_table" style="width: 150px;">
+                    <datalist id="cat-filt-prod-list"></datalist>
+                    <button class="btn-warning" py-click="cat_clear_filters">Clear</button>
+                </div>
+                <p class="admin-only" style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to load it into the form for editing or deletion.)</p>
+                <div id="catalog-table-container" style="max-height: 450px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 20px;"></div>
+                <div class="edit-panel admin-only" id="cat-manage-panel" style="max-width: 800px; margin-top: 0; display: none;">
+                    <h3 style="color: #3498db; margin-top: 0;">Manage Product Details</h3>
+                    <input type="hidden" id="cat-edit-id">
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="cat-edit-name" placeholder="Product Name" style="flex: 2; padding: 8px;">
+                        <input type="search" list="cat-form-list" id="cat-edit-category" placeholder="Category" style="flex: 2; padding: 8px;">
+                        <datalist id="cat-form-list"></datalist>
+                        <input type="number" id="cat-edit-thresh" placeholder="Min Alert" style="flex: 1; padding: 8px;">
+                    </div>
+                    <button class="btn-success" py-click="add_catalog_item">Add New</button>
+                    <button class="btn-warning" py-click="update_catalog_item">Update</button>
+                    <button class="btn-danger" py-click="delete_catalog_item">Delete</button>
+                    <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="clearCatalogForm()">Clear</button>
+                </div>
+            </div>
+
+            <div id="page-audit" class="hidden">
+                <h2 class="page-title">Audit Log</h2>
+                <div class="filter-bar">
+                    <select id="audit-filt-action" py-change="load_audit_table" style="width: 120px;">
+                        <option value="All">All Actions</option>
+                        <option value="In_Stock">In_Stock</option>
+                        <option value="Consumed">Consumed</option>
+                        <option value="Discarded">Discarded</option>
+                        <option value="Manual Edit">Manual Edit</option>
+                        <option value="Deleted">Deleted</option>
+                    </select>
+                    <input type="search" list="audit-filt-cat-list" id="audit-filt-cat" placeholder="Category..." py-change="load_audit_table" py-input="load_audit_table" style="width: 120px;">
+                    <datalist id="audit-filt-cat-list"></datalist>
+                    <input type="search" list="audit-filt-prod-list" id="audit-filt-prod" placeholder="Product..." py-change="load_audit_table" py-input="load_audit_table" style="width: 140px;">
+                    <datalist id="audit-filt-prod-list"></datalist>
+                    <input type="search" id="audit-filt-barcode" placeholder="Barcode..." py-input="load_audit_table" style="width: 120px;">
+                </div>
+                <div class="filter-bar" style="margin-top: -5px;">
+                    <label>From:</label><input type="date" id="audit-filt-start" py-change="load_audit_table" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <label>To:</label><input type="date" id="audit-filt-end" py-change="load_audit_table" min="2000-01-01" max="2099-12-31" onkeydown="return false">
+                    <button class="btn-warning" py-click="audit_clear_filters" style="margin-left: auto;">Clear Filters</button>
+                </div>
+                <div id="audit-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
+            </div>
+
+            <div id="page-users" class="hidden">
+                <h2 class="page-title">User Accounts</h2>
+                <div class="form-grid" style="margin-bottom: 20px;">
+                    <label>Username:</label><input type="text" id="usr-add-name">
+                    <label>Password:</label><input type="password" id="usr-add-pass">
+                    <label>Role:</label><select id="usr-add-role"><option value="normal">Normal</option><option value="admin">Admin</option></select>
+                    <button class="btn-success" py-click="add_user">Add User</button>
+                </div>
+                <div id="users-table-container" style="max-height: 400px; overflow-y: auto;"></div>
+                <div id="usr-edit-panel" class="edit-panel hidden">
+                    <h3 style="color: #f39c12; margin-top: 0;">Edit User</h3>
+                    <input type="hidden" id="usr-edit-id">
+                    <div class="edit-grid">
+                        <label>Username:</label><input type="text" id="usr-edit-name">
+                        <label>Role:</label><select id="usr-edit-role"><option value="normal">Normal</option><option value="admin">Admin</option></select>
+                        <label>Password:</label><input type="password" id="usr-edit-pass" placeholder="Blank = no change">
+                    </div>
+                    <button class="btn-warning" py-click="update_user">Update</button>
+                    <button class="btn-danger" py-click="delete_user">Delete</button>
+                    <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="document.getElementById('usr-edit-panel').classList.add('hidden')">Cancel</button>
+                </div>
+            </div>
+
+            <div id="page-settings" class="hidden">
+                <h2 class="page-title">System Settings</h2>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div class="edit-panel" style="max-width: 400px; flex: 1; margin-top:0;">
+                        <h3>Change My Password</h3>
+                        <div class="edit-grid" style="grid-template-columns: 140px 1fr;">
+                            <label>Current PW:</label><input type="password" id="set-old-pw">
+                            <label>New PW:</label><input type="password" id="set-new-pw">
+                        </div>
+                        <button class="btn-warning" py-click="change_my_password" style="width:100%;">Update</button>
+                    </div>
+                    <div class="edit-panel admin-only" id="admin-settings-panel" style="max-width: 400px; flex: 1; margin-top:0; display:none;">
+                        <h3>Appearance (Admin)</h3>
+                        <div class="edit-grid" style="grid-template-columns: 100px 1fr;">
+                            <label>Title:</label><input type="text" id="set-sys-title">
+                            <label>Color:</label><input type="color" id="set-sys-color" style="height: 38px; cursor: pointer;">
+                        </div>
+                        <button class="btn-success" py-click="save_system_settings" style="width: 45%;">Save</button>
+                        <button class="btn-primary" py-click="restore_default_settings" style="width: 45%; background-color: #95a5a6;">Restore</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SMART UNSAVED CHANGES TRACKER (PROMINENT ALERTS)
+        let dbHasUnsavedChanges = false;
+        
+        window.markDbChanged = function() {
+            dbHasUnsavedChanges = true;
+            let btn = document.getElementById('btn-save-db');
+            if (btn) {
+                // THE FIX: Keeps the word "Save Database" visible
+                btn.innerHTML = '💾 Save Database (Unsaved) ⚠️';
+                btn.style.backgroundColor = ''; // Remove inline style so CSS class takes over
+                btn.classList.add('btn-unsaved-pulse');
+            }
+            let banner = document.getElementById('unsaved-banner');
+            if (banner) banner.style.display = 'block';
+        };
+        
+        window.markDbSaved = function() {
+            dbHasUnsavedChanges = false;
+            let btn = document.getElementById('btn-save-db');
+            if (btn) {
+                btn.innerHTML = '💾 Save Database';
+                btn.classList.remove('btn-unsaved-pulse');
+            }
+            let banner = document.getElementById('unsaved-banner');
+            if (banner) banner.style.display = 'none';
+        };
+
+        window.addEventListener('beforeunload', function (e) {
+            if (dbHasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = ''; // Browsers require this empty string to trigger the warning popup
+            }
+        });
+
+        window.sortTable = function(thElement, colIndex) {
+            const table = thElement.closest('table');
+            const tbody = table.querySelector('tbody') || table;
+            const rows = Array.from(tbody.querySelectorAll('tr:nth-child(n+2)')); 
+            if (!table.dataset.initialized) { rows.forEach((row, idx) => row.dataset.origIndex = idx); table.dataset.initialized = 'true'; }
+            let state = parseInt(thElement.dataset.sortDir || '0');
+            Array.from(thElement.parentNode.children).forEach(th => { if (th !== thElement) { th.dataset.sortDir = '0'; th.innerHTML = th.innerHTML.replace(/ ▲| ▼/g, ''); } });
+            state = (state + 1) % 3; thElement.dataset.sortDir = state;
+            thElement.innerHTML = thElement.innerHTML.replace(/ ▲| ▼/g, '');
+            if (state === 1) thElement.innerHTML += ' ▲'; if (state === 2) thElement.innerHTML += ' ▼';
+            if (state === 0) { rows.sort((a, b) => parseInt(a.dataset.origIndex) - parseInt(b.dataset.origIndex)); }
+            else {
+                rows.sort((a, b) => {
+                    let aT = a.children[colIndex].innerText.trim(); let bT = b.children[colIndex].innerText.trim();
+                    let isD = aT.match(/^\d{4}-\d{2}-\d{2}/) && bT.match(/^\d{4}-\d{2}-\d{2}/);
+                    let aN = parseFloat(aT); let bN = parseFloat(bT);
+                    let isN = !isNaN(aN) && isFinite(aT) && !isNaN(bN) && isFinite(bT) && !isD;
+                    let cmp = isD ? Date.parse(aT) - Date.parse(bT) : (isN ? aN - bN : aT.localeCompare(bT));
+                    return state === 1 ? cmp : -cmp; 
+                });
+            }
+            rows.forEach(row => tbody.appendChild(row));
+        };
+
+        async function saveDatabaseJS(uint8Array) {
+            try {
+                if (window.showSaveFilePicker) {
+                    const h = await window.showSaveFilePicker({ suggestedName: 'KWH_Inventory_System.db', types: [{ description: 'Database File', accept: {'application/octet-stream': ['.db']} }] });
+                    const w = await h.createWritable(); await w.write(uint8Array); await w.close(); 
+                    window.markDbSaved();
+                    alert("Database saved successfully!");
+                } else {
+                    const blob = new Blob([uint8Array], {type: "application/octet-stream"});
+                    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "KWH_Inventory_System.db"; a.click(); 
+                    window.markDbSaved();
+                    alert("Database auto-downloaded to your Downloads folder.");
+                }
+            } catch (err) { if (err.name !== 'AbortError') alert("Save failed."); }
+        }
+
+        function bindEnter(inputId, buttonId) {
+            let el = document.getElementById(inputId);
+            if(el) { el.addEventListener("keydown", function(event) { if (event.key === "Enter") { event.preventDefault(); document.getElementById(buttonId).click(); } }); }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            bindEnter("username", "login-btn"); bindEnter("password", "login-btn");
+            bindEnter("si-barcode", "btn-si-add"); bindEnter("so-barcode", "btn-so-consume");
+            bindEnter("dash-notice-input", "btn-post-notice");
+        });
+
+        window.toggleAdminUI = function(isAdmin) {
+            let els = document.querySelectorAll('.admin-only');
+            els.forEach(e => { e.style.display = isAdmin ? 'block' : 'none'; });
+        }
+
+        function clearCatalogForm() {
+            document.getElementById("cat-edit-id").value = ""; document.getElementById("cat-edit-name").value = ""; 
+            document.getElementById("cat-edit-category").value = ""; document.getElementById("cat-edit-thresh").value = "0";
+            document.getElementById("cat-manage-panel").style.display = "none";
+        }
+
+        function selectNoteForEdit(id, author, content) {
+            document.getElementById("notes-edit-panel").classList.remove("hidden");
+            document.getElementById("note-edit-id").value = id; document.getElementById("note-edit-author").value = author; 
+            document.getElementById("note-edit-content").value = content; document.getElementById("notes-edit-panel").scrollIntoView({ behavior: 'smooth' });
+        }
+        function selectItemForEdit(itemId, barcode, catalogId, lot, exp, recv, status) {
+            document.getElementById("edit-panel").classList.remove("hidden");
+            document.getElementById("edit-id").value = itemId; document.getElementById("edit-barcode").value = barcode; 
+            document.getElementById("edit-product").value = catalogId; document.getElementById("edit-lot").value = lot !== "/" ? lot : "";
+            document.getElementById("edit-exp").value = (exp && exp !== "/" && exp !== "None") ? exp.split(" ")[0] : "";
+            document.getElementById("edit-recv").value = (recv && recv !== "/" && recv !== "None") ? recv.split(" ")[0] : "";
+            document.getElementById("edit-status").value = status; document.getElementById("edit-panel").scrollIntoView({ behavior: 'smooth' });
+        }
+        function selectCatalogForEdit(catId, name, category, thresh) {
+            document.getElementById("cat-manage-panel").style.display = "block";
+            document.getElementById("cat-edit-id").value = catId; document.getElementById("cat-edit-name").value = name; 
+            document.getElementById("cat-edit-category").value = category; document.getElementById("cat-edit-thresh").value = thresh;
+            document.getElementById("cat-manage-panel").scrollIntoView({ behavior: 'smooth' });
+        }
+        function selectManualItem(rowElement, itemId, barcode) {
+            let rows = document.querySelectorAll("#so-manual-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
+            rowElement.style.backgroundColor = "#f1c40f"; 
+            document.getElementById("so-selected-item-id").value = itemId; document.getElementById("so-selected-barcode").value = barcode;
+        }
+        function selectUserForEdit(userId, name, role) {
+            document.getElementById("usr-edit-panel").classList.remove("hidden");
+            document.getElementById("usr-edit-id").value = userId; document.getElementById("usr-edit-name").value = name; 
+            document.getElementById("usr-edit-role").value = role; document.getElementById("usr-edit-pass").value = ""; 
+            document.getElementById("usr-edit-panel").scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+
+    <py-config> packages = ["sqlite3"] </py-config>
+
+    <script type="py">
+import sqlite3
+import hashlib
+import js
+import datetime
+from pyscript import document, window
+from pyodide.ffi import create_proxy, to_js
+
+db_conn = None
+current_user = None
+
+def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
+
+def mark_dirty(): js.window.markDbChanged()
+
+def is_valid_date_range(d_str):
+    if not d_str or d_str == "/": return True
+    try:
+        y = int(d_str.split("-")[0])
+        return 2000 <= y <= 2099
+    except: return False
+
+def setup_database_tables():
+    cur = db_conn.cursor()
+    cur.execute("PRAGMA table_info(Users)")
+    cols = [info[1] for info in cur.fetchall()]
+    if 'is_active' not in cols: cur.execute("ALTER TABLE Users ADD COLUMN is_active INTEGER DEFAULT 1")
+    cur.execute('''CREATE TABLE IF NOT EXISTS Notes (note_id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, content TEXT NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS Settings (setting_key TEXT PRIMARY KEY, setting_value TEXT)''')
+    cur.execute("INSERT OR IGNORE INTO Settings (setting_key, setting_value) VALUES ('theme_color', '#34495e')")
+    cur.execute("INSERT OR IGNORE INTO Settings (setting_key, setting_value) VALUES ('system_title', 'KWH Inventory System')")
+    db_conn.commit()
+    apply_system_settings()
+
+def apply_system_settings():
+    try:
+        cur = db_conn.cursor()
+        cur.execute("SELECT setting_value FROM Settings WHERE setting_key='system_title'")
+        title_row = cur.fetchone(); title = title_row[0] if title_row else "KWH Inventory System"
+        cur.execute("SELECT setting_value FROM Settings WHERE setting_key='theme_color'")
+        color_row = cur.fetchone(); color = color_row[0] if color_row else "#34495e"
+        document.title = title + " - Web Edition"
+        if document.getElementById("sys-title-display"): document.getElementById("sys-title-display").innerText = title
+        if document.getElementById("sys-header-display"): document.getElementById("sys-header-display").innerText = title
+        document.documentElement.style.setProperty('--theme-color', color)
+        if document.getElementById("set-sys-title"): document.getElementById("set-sys-title").value = title
+        if document.getElementById("set-sys-color"): document.getElementById("set-sys-color").value = color
+    except Exception as e: pass
+
+async def load_database(event):
+    file_list = event.target.files
+    if not file_list: return
+    file = file_list.item(0); array_buffer = await file.arrayBuffer()
+    with open("KWH_Inventory_System.db", "wb") as f: f.write(array_buffer.to_bytes())
+    global db_conn; db_conn = sqlite3.connect("KWH_Inventory_System.db")
+    document.getElementById("loading-msg").innerText = "Database Loaded!"
+    setup_database_tables(); document.getElementById("db-loader-screen").classList.add("hidden"); document.getElementById("login-screen").classList.remove("hidden"); document.getElementById("username").focus()
+
+def init_dashboard_data():
+    load_dashboard_home()
+
+def attempt_login(*args, **kwargs):
+    uname = document.getElementById("username").value.strip(); pw = document.getElementById("password").value.strip()
+    if not uname or not pw: return
+    try:
+        cursor = db_conn.cursor(); cursor.execute("SELECT user_id, username, role FROM Users WHERE username=? AND password_hash=? AND is_active=1", (uname, hash_pw(pw)))
+        user = cursor.fetchone()
+        if user:
+            global current_user; role_str = str(user[2]).strip().lower() if user[2] else 'normal'
+            current_user = {"id": user[0], "username": user[1], "role": role_str}
+            document.getElementById("login-screen").classList.add("hidden"); document.getElementById("dashboard-screen").classList.remove("hidden")
+            ud_el = document.getElementById("user-display")
+            if ud_el: ud_el.innerHTML = f"Welcome,<br><span style='font-size:14px; color:#2ecc71;'>{user[1]}</span>"
+            if current_user['role'] == 'admin': js.window.toggleAdminUI(True)
+            else: js.window.toggleAdminUI(False)
+            try: setup_stock_in_page()
+            except: pass
+            try: setup_scan_out_page()
+            except: pass
+            try: setup_inventory_page()
+            except: pass
+            try: setup_catalog_page()
+            except: pass
+            try: setup_audit_page()
+            except: pass
+            nav_home()
+        else: document.getElementById("error-msg").innerText = "Invalid credentials."
+    except Exception as e: document.getElementById("error-msg").innerText = f"Error: {e}"
+
+def download_database(*args, **kwargs):
+    if db_conn: db_conn.commit()
+    try: data = open("KWH_Inventory_System.db", "rb").read(); js.saveDatabaseJS(to_js(data))
+    except Exception as e: js.alert(f"Failed: {e}")
+
+def update_nav_visuals(active_id):
+    btns = ["nav-home", "nav-stock-in", "nav-scan-out", "nav-inventory", "nav-notes", "nav-catalog", "nav-audit", "nav-users", "nav-settings"]
+    pages = ["page-home", "page-stock-in", "page-scan-out", "page-inventory", "page-notes", "page-catalog", "page-audit", "page-users", "page-settings"]
+    for btn in btns: 
+        el = document.getElementById(btn); 
+        if el: el.classList.remove("active")
+    if active_id and document.getElementById(active_id): document.getElementById(active_id).classList.add("active")
+    for page in pages: 
+        el = document.getElementById(page); 
+        if el: el.classList.add("hidden")
+
+def nav_home(*args, **kwargs): update_nav_visuals("nav-home"); document.getElementById("page-home").classList.remove("hidden"); load_dashboard_home()
+def nav_stock_in(*args, **kwargs): update_nav_visuals("nav-stock-in"); document.getElementById("page-stock-in").classList.remove("hidden")
+def nav_scan_out(*args, **kwargs): update_nav_visuals("nav-scan-out"); document.getElementById("page-scan-out").classList.remove("hidden"); document.getElementById("so-barcode").focus()
+def nav_inventory(*args, **kwargs): update_nav_visuals("nav-inventory"); document.getElementById("page-inventory").classList.remove("hidden"); load_inventory_table()
+def nav_notes(*args, **kwargs): update_nav_visuals(None); document.getElementById("page-notes").classList.remove("hidden"); load_notes_table()
+def nav_catalog(*args, **kwargs): update_nav_visuals("nav-catalog"); document.getElementById("page-catalog").classList.remove("hidden"); load_catalog_table()
+def nav_audit(*args, **kwargs): update_nav_visuals("nav-audit"); document.getElementById("page-audit").classList.remove("hidden"); load_audit_table()
+def nav_users(*args, **kwargs): update_nav_visuals("nav-users"); document.getElementById("page-users").classList.remove("hidden"); load_user_table()
+def nav_settings(*args, **kwargs): update_nav_visuals("nav-settings"); document.getElementById("page-settings").classList.remove("hidden")
+def logout(*args, **kwargs): window.location.reload()
+
+def load_dashboard_home():
+    try:
+        cur = db_conn.cursor(); q = "SELECT c.product_name, c.category, COUNT(i.item_id) as current_stock, c.low_stock_threshold FROM Catalog c LEFT JOIN Inventory i ON c.catalog_id = i.catalog_id AND i.status = 'In_Stock' GROUP BY c.catalog_id HAVING current_stock <= c.low_stock_threshold ORDER BY current_stock ASC"
+        html = "<table style='width:100%;'><tr><th style='width:40%;'>Product</th><th style='width:30%;'>Category</th><th style='width:15%;'>Stock</th><th style='width:15%;'>Min</th></tr>"
+        found = False; count = 0 
+        for r in cur.execute(q):
+            found = True; count += 1; html += f"<tr style='color:#c0392b; font-weight:bold;'><td>{str(r[0]).replace('<','&lt;')}</td><td>{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td><td>{r[3]}</td></tr>"
+        document.getElementById("dash-alerts-table").innerHTML = html + "</table>" if found else "<p style='color:#2ecc71; padding:10px; font-weight:bold;'>All stock is healthy!</p>"
+        badge = document.getElementById("alert-badge")
+        if badge:
+            if count > 0: badge.innerText = f"{count} Item{'s' if count > 1 else ''}"; badge.style.display = "inline-block"
+            else: badge.style.display = "none"
+    except: pass
+    try:
+        cur = db_conn.cursor(); q2 = "SELECT username, content, timestamp FROM Notes ORDER BY timestamp DESC LIMIT 15"
+        cur.execute(q2); rows = cur.fetchall()
+        html2 = "<table style='width:100%; font-size:14px;'><tr><th style='width:25%;'>By</th><th style='width:50%;'>Note</th><th style='width:25%;'>Time</th></tr>"
+        for r in reversed(rows): html2 += f"<tr><td><strong>{str(r[0]).replace('<','&lt;')}</strong></td><td>{str(r[1]).replace('<','&lt;')}</td><td style='font-size:11px;'>{r[2]}</td></tr>"
+        document.getElementById("dash-notices-table").innerHTML = html2 + "</table>"
+        cont = document.getElementById("dash-notices-container")
+        if cont: cont.scrollTop = cont.scrollHeight
+    except: pass
+
+def post_notice(*args, **kwargs):
+    try:
+        input_el = document.getElementById("dash-notice-input"); msg = input_el.value.strip()
+        if msg: db_conn.execute("INSERT INTO Notes (username, content) VALUES (?, ?)", (current_user['username'], msg)); db_conn.commit(); mark_dirty(); load_dashboard_home(); input_el.value = "" 
+    except: pass
+
+def load_notes_table(*args, **kwargs):
+    document.getElementById("notes-edit-panel").classList.add("hidden"); cur = db_conn.cursor(); q = "SELECT note_id, username, content, strftime('%Y-%m-%d %H:%M:%S', timestamp, 'localtime') FROM Notes ORDER BY timestamp ASC"
+    html = "<table><tr><th>Posted By</th><th>Content</th><th>Time</th></tr>"
+    for r in cur.execute(q): html += f"<tr onclick=\"selectNoteForEdit({r[0]}, '{str(r[1]).replace(chr(39),'')}', '{str(r[2]).replace(chr(39),chr(92)+chr(39))}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[2]).replace('<','&lt;')}</td><td style='font-size:11px;'>{r[3]}</td></tr>"
+    document.getElementById("notes-table-container").innerHTML = html + "</table>"
+    cont = document.getElementById("notes-table-container")
+    if cont: cont.scrollTop = cont.scrollHeight
+
+def update_note(*args, **kwargs):
+    id = document.getElementById("note-edit-id").value; author = document.getElementById("note-edit-author").value; content = document.getElementById("note-edit-content").value.strip()
+    if not content: return
+    if current_user['role'] == 'admin' or current_user['username'] == author:
+        if js.confirm("Update message?"): db_conn.execute("UPDATE Notes SET content=? WHERE note_id=?", (content, id)); db_conn.commit(); mark_dirty(); load_notes_table(); load_dashboard_home(); document.getElementById("notes-edit-panel").classList.add("hidden")
+    else: js.alert("Permission Denied: You can only edit your own posts.")
+
+def delete_note(*args, **kwargs):
+    id = document.getElementById("note-edit-id").value; author = document.getElementById("note-edit-author").value
+    if current_user['role'] == 'admin' or current_user['username'] == author:
+        if js.confirm("Delete message?"): db_conn.execute("DELETE FROM Notes WHERE note_id=?", (id,)); db_conn.commit(); mark_dirty(); load_notes_table(); load_dashboard_home(); document.getElementById("notes-edit-panel").classList.add("hidden")
+    else: js.alert("Permission Denied: You can only delete your own posts.")
+
+def clear_all_notes(*args, **kwargs):
+    if current_user['role'] == 'admin' and js.confirm("Delete ALL messages?"): db_conn.execute("DELETE FROM Notes"); db_conn.commit(); mark_dirty(); load_notes_table(); load_dashboard_home(); document.getElementById("notes-edit-panel").classList.add("hidden")
+
+def setup_stock_in_page():
+    cur = db_conn.cursor(); cur.execute("SELECT catalog_id, product_name FROM Catalog ORDER BY product_name")
+    data = cur.fetchall()
+    document.getElementById("si-prod-list").innerHTML = "".join([f"<option value='{str(r[1]).replace('<','&lt;')}'>" for r in data])
+    document.getElementById("edit-product").innerHTML = "".join([f"<option value='{r[0]}'>{str(r[1]).replace('<','&lt;')}</option>" for r in data])
+    document.getElementById("si-recv").value = datetime.date.today().strftime("%Y-%m-%d")
+
+def receive_item(*args, **kwargs):
+    bc = document.getElementById("si-barcode").value.strip(); prod_name = document.getElementById("si-product").value.strip(); lot = document.getElementById("si-lot").value.strip() or "/"; exp = document.getElementById("si-exp").value.strip() or "/"; recv = document.getElementById("si-recv").value; qty = int(document.getElementById("si-qty").value)
+    if not bc or not recv or not prod_name: return
+    if not is_valid_date_range(exp) or not is_valid_date_range(recv): js.alert("Invalid year range (2000-2099)."); return
+    cur = db_conn.cursor(); cur.execute("SELECT catalog_id FROM Catalog WHERE product_name=?", (prod_name,)); cat_res = cur.fetchone()
+    if not cat_res: js.alert("Invalid product."); return
+    cat_id = cat_res[0]
+    cur.execute("SELECT catalog_id FROM Inventory WHERE barcode_lot_number=? LIMIT 1", (bc,)); ext = cur.fetchone()
+    if ext and str(ext[0]) != str(cat_id): js.alert("Barcode conflict."); return
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for _ in range(qty):
+        cur.execute("INSERT INTO Inventory (barcode_lot_number, catalog_id, catalog_number, expiry_date, received_date, status) VALUES (?, ?, ?, ?, ?, 'In_Stock')", (bc, cat_id, lot, exp, recv))
+        cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'In_Stock', ?)", (cur.lastrowid, bc, current_user['id'], ts))
+    db_conn.commit(); mark_dirty(); document.getElementById("si-barcode").value = ""; load_dashboard_home(); js.alert(f"Added {qty} items!")
+
+def setup_scan_out_page():
+    document.getElementById("so-date").value = datetime.date.today().strftime("%Y-%m-%d")
+    cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
+    document.getElementById("so-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("so-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_so_manual_table()
+
+def so_filter_changed(*args, **kwargs):
+    cat = document.getElementById("so-cat-filter").value.strip(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("so-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_so_manual_table()
+
+def so_clear_filters(*args, **kwargs): document.getElementById("so-cat-filter").value = ""; document.getElementById("so-prod-filter").value = ""; so_filter_changed()
+
+def load_so_manual_table(*args, **kwargs):
+    cat = document.getElementById("so-cat-filter").value.strip(); prod = document.getElementById("so-prod-filter").value.strip()
+    q = "SELECT i.item_id, i.barcode_lot_number, c.product_name, i.catalog_number, i.expiry_date, i.received_date FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.status = 'In_Stock'"; p = []
+    if cat: q += " AND c.category = ?"; p.append(cat)
+    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot number</th><th onclick='sortTable(this, 2)'>Catalog Number</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th></tr>"
+    for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p): 
+        safe_bc = str(r[1]).replace("'", "\\'")
+        html += f"<tr onclick=\"selectManualItem(this, {r[0]}, '{safe_bc}')\"><td>{str(r[2]).replace('<','&lt;')}</td><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[3]).replace('<','&lt;')}</td><td>{r[4]}</td><td>{r[5]}</td></tr>"
+    document.getElementById("so-manual-table-container").innerHTML = html + "</table>"
+
+def consume_item_via_scan(*args, **kwargs):
+    bc = document.getElementById("so-barcode").value.strip(); out_date = document.getElementById("so-date").value
+    if not bc or not out_date: return
+    if not is_valid_date_range(out_date): js.alert("Invalid date."); return
+    cur = db_conn.cursor(); cur.execute("SELECT status, item_id, catalog_id FROM Inventory WHERE barcode_lot_number=? AND status='In_Stock' ORDER BY expiry_date ASC LIMIT 1", (bc,))
+    res = cur.fetchone()
+    if res:
+        item_id, cat_id = res[1], res[2]
+        cur.execute("SELECT item_id, catalog_number, expiry_date FROM Inventory WHERE catalog_id=? AND status='In_Stock'", (cat_id,))
+        items = []
+        for r in cur.fetchall():
+            try: dt = datetime.datetime.strptime(str(r[2]).strip(), '%Y-%m-%d').date()
+            except: dt = datetime.date(2099, 1, 1)
+            items.append({'id': r[0], 'lot': r[1], 'dt': dt, 'exp': str(r[2])})
+        if items:
+            items.sort(key=lambda x: x['dt']); oldest = items[0]; sel = next((p for p in items if p['id'] == item_id), None)
+            if sel and oldest and sel['dt'] > oldest['dt']:
+                if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): 
+                    document.getElementById("so-barcode").value = ""; return
+        cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?"); cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Consumed', ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S")))
+        db_conn.commit(); mark_dirty(); document.getElementById("so-barcode").value = ""; load_dashboard_home(); setup_scan_out_page()
+    else: js.alert("Not In-Stock.")
+
+def consume_item_via_manual(*args, **kwargs):
+    id = document.getElementById("so-selected-item-id").value; bc = document.getElementById("so-selected-barcode").value; out_date = document.getElementById("so-date").value
+    if not id or not out_date: return
+    cur = db_conn.cursor(); cur.execute("SELECT catalog_id FROM Inventory WHERE item_id=?", (id,)); res = cur.fetchone()
+    if res:
+        cur.execute("SELECT item_id, catalog_number, expiry_date FROM Inventory WHERE catalog_id=? AND status='In_Stock'", (res[0],))
+        items = []
+        for r in cur.fetchall():
+            try: dt = datetime.datetime.strptime(str(r[2]).strip(), '%Y-%m-%d').date()
+            except: dt = datetime.date(2099, 1, 1)
+            items.append({'id': r[0], 'lot': r[1], 'dt': dt, 'exp': str(r[2])})
+        if items:
+            items.sort(key=lambda x: x['dt']); oldest = items[0]; sel = next((p for p in items if str(p['id']) == str(id)), None)
+            if sel and oldest and sel['dt'] > oldest['dt']:
+                if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): return
+    if js.confirm("Consume selected?"):
+        db_conn.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (id,)); db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Consumed', ?)", (id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"))); db_conn.commit(); mark_dirty(); setup_scan_out_page(); load_dashboard_home(); js.alert("Consumed!")
+
+def setup_inventory_page():
+    cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
+    document.getElementById("inv-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("inv-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_inventory_table()
+
+def inv_filter_changed(*args, **kwargs):
+    cat = document.getElementById("inv-cat-filter").value.strip(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("inv-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_inventory_table()
+
+def inv_clear_filters(*args, **kwargs): document.getElementById("inv-cat-filter").value = ""; document.getElementById("inv-prod-filter").value = ""; document.getElementById("inv-status-filter").value = "All"; document.getElementById("inv-bc-filter").value = ""; inv_filter_changed() 
+
+def load_inventory_table(*args, **kwargs):
+    document.getElementById("edit-panel").classList.add("hidden")
+    cat = document.getElementById("inv-cat-filter").value.strip(); prod = document.getElementById("inv-prod-filter").value.strip(); stat = document.getElementById("inv-status-filter").value; bc = document.getElementById("inv-bc-filter").value.strip().lower()
+    q = "SELECT i.item_id, i.barcode_lot_number, c.catalog_id, c.product_name, i.catalog_number, i.expiry_date, i.received_date, i.status FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"; p = []
+    if stat != "All": q += " AND i.status = ?"; p.append(stat)
+    if bc: q += " AND LOWER(i.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
+    if cat: q += " AND c.category = ?"; p.append(cat)
+    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot</th><th onclick='sortTable(this, 2)'>Catalog Num</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th><th>Status</th></tr>"
+    for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p):
+        safe_bc = str(r[1]).replace("'", "\\'"); safe_lot = str(r[4]).replace("'", "\\'"); safe_exp = str(r[5]).replace("'", "\\'"); safe_recv = str(r[6]).replace("'", "\\'"); safe_stat = str(r[7]).replace("'", "\\'")
+        c = "row-flagged" if r[7] == "Flagged" else ""; attr = f"onclick=\"selectItemForEdit({r[0]}, '{safe_bc}', {r[2]}, '{safe_lot}', '{safe_exp}', '{safe_recv}', '{safe_stat}')\"" if current_user['role'] == 'admin' else ""
+        html += f"<tr class='{c}' {attr}><td>{str(r[3]).replace('<','&lt;')}</td><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[4]).replace('<','&lt;')}</td><td>{str(r[5]).replace('<','&lt;')}</td><td>{str(r[6]).replace('<','&lt;')}</td><td>{str(r[7]).replace('<','&lt;')}</td></tr>"
+    document.getElementById("inventory-table-container").innerHTML = html + "</table>"
+
+def update_item(*args, **kwargs):
+    id = document.getElementById("edit-id").value; bc = document.getElementById("edit-barcode").value.strip(); cat = document.getElementById("edit-product").value; lot = document.getElementById("edit-lot").value.strip(); exp = document.getElementById("edit-exp").value or "/"; recv = document.getElementById("edit-recv").value or "/"; stat = document.getElementById("edit-status").value
+    if not is_valid_date_range(exp) or not is_valid_date_range(recv): js.alert("Invalid year."); return
+    if js.confirm("Update?"): db_conn.execute("UPDATE Inventory SET barcode_lot_number=?, catalog_id=?, catalog_number=?, expiry_date=?, received_date=?, status=? WHERE item_id=?", (bc, cat, lot, exp, recv, stat, id)); db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp) VALUES (?, ?, ?, 'Manual Edit', ?)", (id, bc, current_user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))); db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
+
+def delete_item(*args, **kwargs):
+    if js.confirm("Delete?"): db_conn.execute("DELETE FROM Inventory WHERE item_id=?", (document.getElementById("edit-id").value,)); db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
+
+def setup_catalog_page():
+    cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
+    cats = cur.fetchall()
+    document.getElementById("cat-filt-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cats])
+    document.getElementById("cat-form-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cats])
+    cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("cat-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_catalog_table()
+
+def cat_filter_changed(*args, **kwargs):
+    cat = document.getElementById("cat-filt-cat").value.strip(); cur = db_conn.cursor()
+    if cat: cur.execute("SELECT product_name FROM Catalog WHERE category=? ORDER BY product_name", (cat,))
+    else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("cat-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_catalog_table()
+
+def cat_clear_filters(*args, **kwargs): document.getElementById("cat-filt-cat").value = ""; document.getElementById("cat-filt-prod").value = ""; cat_filter_changed()
+
+def load_catalog_table(*args, **kwargs):
+    cat = document.getElementById("cat-filt-cat").value.strip(); prod = document.getElementById("cat-filt-prod").value.strip()
+    q = "SELECT c.catalog_id, c.product_name, c.category, COUNT(i.item_id) as current_stock, c.low_stock_threshold FROM Catalog c LEFT JOIN Inventory i ON c.catalog_id = i.catalog_id AND i.status = 'In_Stock' WHERE 1=1"; p = []
+    if cat: q += " AND c.category = ?"; p.append(cat)
+    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    html = "<table><tr><th>Product</th><th>Category</th><th>Stock</th><th>Threshold</th></tr>"
+    for r in db_conn.cursor().execute(q + " GROUP BY c.catalog_id ORDER BY c.product_name ASC", p):
+        safe_n = str(r[1]).replace("'", "\\'"); safe_c = str(r[2]).replace("'", "\\'"); attr = f"onclick=\"selectCatalogForEdit({r[0]}, '{safe_n}', '{safe_c}', {r[4]})\"" if current_user['role'] == 'admin' else ""
+        html += f"<tr {attr}><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[2]).replace('<','&lt;')}</td><td>{r[3]}</td><td>{r[4]}</td></tr>"
+    document.getElementById("catalog-table-container").innerHTML = html + "</table>"
+
+def add_catalog_item(*args, **kwargs):
+    n = document.getElementById("cat-edit-name").value.strip(); c = document.getElementById("cat-edit-category").value.strip(); t = document.getElementById("cat-edit-thresh").value
+    if n and c:
+        try: db_conn.execute("INSERT INTO Catalog (product_name, category, low_stock_threshold) VALUES (?, ?, ?)", (n, c, int(t))); db_conn.commit(); mark_dirty(); js.alert("Added!"); js.window.clearCatalogForm(); setup_catalog_page()
+        except: js.alert("Error.")
+
+def update_catalog_item(*args, **kwargs):
+    id = document.getElementById("cat-edit-id").value; n = document.getElementById("cat-edit-name").value.strip(); c = document.getElementById("cat-edit-category").value.strip(); t = document.getElementById("cat-edit-thresh").value
+    if id: db_conn.execute("UPDATE Catalog SET product_name=?, category=?, low_stock_threshold=? WHERE catalog_id=?", (n, c, int(t), id)); db_conn.commit(); mark_dirty(); js.alert("Updated!"); setup_catalog_page()
+
+def delete_catalog_item(*args, **kwargs):
+    if js.confirm("Delete?"): db_conn.execute("DELETE FROM Catalog WHERE catalog_id=?", (document.getElementById("cat-edit-id").value,)); db_conn.commit(); mark_dirty(); js.window.clearCatalogForm(); setup_catalog_page()
+
+def setup_audit_page():
+    cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
+    document.getElementById("audit-filt-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
+    document.getElementById("audit-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    load_audit_table()
+
+def audit_clear_filters(*args, **kwargs):
+    def safe_clear(elem_id):
+        el = document.getElementById(elem_id)
+        if el: el.value = ""
+    el_act = document.getElementById("audit-filt-action")
+    if el_act: el_act.value = "All"
+    safe_clear("audit-filt-cat"); safe_clear("audit-filt-prod"); safe_clear("audit-filt-barcode"); safe_clear("audit-filt-start"); safe_clear("audit-filt-end")
+    load_audit_table()
+
+def load_audit_table(*args, **kwargs):
+    def safe_get(elem_id, default=""):
+        el = document.getElementById(elem_id)
+        return el.value if el else default
+    act = safe_get("audit-filt-action", "All"); cat = safe_get("audit-filt-cat").strip(); prod = safe_get("audit-filt-prod").strip()
+    bc = safe_get("audit-filt-barcode").strip().lower(); start_dt = safe_get("audit-filt-start"); end_dt = safe_get("audit-filt-end")
+    q = """SELECT COALESCE(c.product_name, 'Unknown'), a.barcode_lot_number, a.action, u.username, a.timestamp FROM AuditLog a LEFT JOIN Users u ON a.user_id = u.user_id LEFT JOIN Inventory i ON a.item_id = i.item_id LEFT JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"""; p = []
+    if act != "All": q += " AND a.action = ?"; p.append(act)
+    if bc: q += " AND LOWER(a.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
+    if cat: q += " AND c.category = ?"; p.append(cat)
+    if prod: q += " AND c.product_name = ?"; p.append(prod)
+    if start_dt and is_valid_date_range(start_dt): q += " AND date(a.timestamp) >= ?"; p.append(start_dt)
+    if end_dt and is_valid_date_range(end_dt): q += " AND date(a.timestamp) <= ?"; p.append(end_dt)
+    html = "<table><tr><th>Product</th><th>Barcode/Lot number</th><th>Action</th><th>User</th><th>Time</th></tr>"
+    try:
+        for r in db_conn.cursor().execute(q + " ORDER BY a.timestamp DESC LIMIT 300", p):
+            html += f"<tr><td>{str(r[0]).replace('<','&lt;')}</td><td>{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td><td>{r[3]}</td><td>{r[4]}</td></tr>"
+        cont = document.getElementById("audit-table-container")
+        if cont: cont.innerHTML = html + "</table>"
+    except Exception as e: print(e)
+
+def load_user_table(*args, **kwargs):
+    document.getElementById("usr-edit-panel").classList.add("hidden"); html = "<table><tr><th>Username</th><th>Role</th></tr>"
+    for r in db_conn.cursor().execute("SELECT user_id, username, role FROM Users WHERE is_active=1 ORDER BY username ASC"):
+        html += f"<tr onclick=\"selectUserForEdit({r[0]}, '{str(r[1]).replace(chr(39),'')}', '{r[2]}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td></tr>"
+    document.getElementById("users-table-container").innerHTML = html + "</table>"
+
+def add_user(*args, **kwargs):
+    u = document.getElementById("usr-add-name").value.strip(); p = document.getElementById("usr-add-pass").value.strip(); r = document.getElementById("usr-add-role").value
+    if u and p: db_conn.execute("INSERT INTO Users (username, password_hash, role, is_active) VALUES (?, ?, ?, 1)", (u, hash_pw(p), r)); db_conn.commit(); mark_dirty(); load_user_table(); js.alert("Added!")
+
+def update_user(*args, **kwargs):
+    u_id = document.getElementById("usr-edit-id").value; uname = document.getElementById("usr-edit-name").value.strip(); role = document.getElementById("usr-edit-role").value; pw = document.getElementById("usr-edit-pass").value.strip()
+    if pw: db_conn.execute("UPDATE Users SET username=?, password_hash=?, role=? WHERE user_id=?", (uname, hash_pw(pw), role, u_id))
+    else: db_conn.execute("UPDATE Users SET username=?, role=? WHERE user_id=?", (uname, role, u_id))
+    db_conn.commit(); mark_dirty(); load_user_table()
+
+def delete_user(*args, **kwargs):
+    if js.confirm("Delete?"): db_conn.execute("UPDATE Users SET is_active=0 WHERE user_id=?", (document.getElementById("usr-edit-id").value,)); db_conn.commit(); mark_dirty(); load_user_table()
+
+def change_my_password(*args, **kwargs):
+    old = document.getElementById("set-old-pw").value; new = document.getElementById("set-new-pw").value
+    cur = db_conn.cursor(); cur.execute("SELECT user_id FROM Users WHERE user_id=? AND password_hash=?", (current_user['id'], hash_pw(old)))
+    if cur.fetchone(): db_conn.execute("UPDATE Users SET password_hash=? WHERE user_id=?", (hash_pw(new), current_user['id'])); db_conn.commit(); mark_dirty(); js.alert("Changed!")
+    else: js.alert("Incorrect.")
+
+def save_system_settings(*args, **kwargs):
+    title = document.getElementById("set-sys-title").value.strip(); color = document.getElementById("set-sys-color").value
+    db_conn.execute("UPDATE Settings SET setting_value=? WHERE setting_key='system_title'", (title,))
+    db_conn.execute("UPDATE Settings SET setting_value=? WHERE setting_key='theme_color'", (color,))
+    db_conn.commit(); mark_dirty(); apply_system_settings(); js.alert("Saved!")
+
+def restore_default_settings(*args, **kwargs):
+    document.getElementById("set-sys-title").value = "KWH Inventory System"; document.getElementById("set-sys-color").value = "#34495e"; save_system_settings()
+
+upload_input = document.getElementById("db-upload")
+upload_input.addEventListener("change", create_proxy(load_database))
+    </script>
+</body>
+</html>

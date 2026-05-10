@@ -195,7 +195,10 @@
 
             <div id="page-notes" class="hidden">
                 <h2 class="page-title">Manage Notice Board History</h2>
-                <button class="btn-primary" py-click="nav_home" style="margin-bottom: 15px; background-color: #95a5a6; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: white;">⬅️ Back to Dashboard</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <button class="btn-primary" py-click="nav_home" style="background-color: #95a5a6; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; color: white;">⬅️ Back to Dashboard</button>
+                    <button class="admin-only" id="btn-clear-all-notes" style="display: none; background: #8e44ad; color: white; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px;" py-click="clear_all_notes">🧹 Clear ALL Notes</button>
+                </div>
                 <div id="notes-table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 20px;"></div>
                 <div id="notes-edit-panel" class="edit-panel hidden">
                     <h3 style="color: #f39c12; margin-top: 0;">Edit Selected Note</h3>
@@ -207,7 +210,6 @@
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <button id="btn-update-notice" class="btn-warning" py-click="update_note">💾 Update</button>
                         <button class="btn-danger" py-click="delete_note">🗑️ Delete</button>
-                        <button class="admin-only" id="btn-clear-all-notes" style="display: none; background: #8e44ad; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px;" py-click="clear_all_notes">🧹 Clear ALL</button>
                         <button style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px;" onclick="document.getElementById('notes-edit-panel').classList.add('hidden')">Cancel</button>
                     </div>
                 </div>
@@ -249,11 +251,16 @@
                         <div class="filter-bar" style="box-shadow: none; border: 1px solid #ddd; padding: 10px;">
                             <input type="search" list="so-cat-list" id="so-cat-filter" placeholder="Category..." py-change="so_filter_changed" py-input="so_filter_changed" style="width: 130px;">
                             <datalist id="so-cat-list"></datalist>
-                            <input type="search" list="so-prod-list" id="so-prod-filter" placeholder="Product..." py-change="load_so_manual_table" py-input="load_so_manual_table" style="width: 150px;">
+                            <input type="search" list="so-prod-list" id="so-prod-filter" placeholder="Product..." py-change="so_filter_changed" py-input="so_filter_changed" style="width: 150px;">
                             <datalist id="so-prod-list"></datalist>
                             <button class="btn-warning" py-click="so_clear_filters">Clear</button>
                         </div>
                         <div id="so-manual-table-container" style="max-height: 350px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #ddd;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 10px;">
+                            <button id="btn-so-prev" class="btn-primary" py-click="so_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto; padding: 5px 15px; margin-top:0;">⬅️ Previous</button>
+                            <span id="so-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
+                            <button id="btn-so-next" class="btn-primary" py-click="so_next_page" style="width: auto; padding: 5px 15px; margin-top:0;">Next ➡️</button>
+                        </div>
                         <input type="hidden" id="so-selected-item-id">
                         <input type="hidden" id="so-selected-barcode">
                         <button class="btn-danger" py-click="consume_item_via_manual" style="width: 100%; margin-top:10px;">Consume Selected Item</button>
@@ -267,21 +274,26 @@
                 <div class="filter-bar">
                     <input type="search" list="inv-cat-list" id="inv-cat-filter" placeholder="Category..." py-change="inv_filter_changed" py-input="inv_filter_changed" style="width: 130px;">
                     <datalist id="inv-cat-list"></datalist>
-                    <input type="search" list="inv-prod-list" id="inv-prod-filter" placeholder="Product..." py-change="load_inventory_table" py-input="load_inventory_table" style="width: 150px;">
+                    <input type="search" list="inv-prod-list" id="inv-prod-filter" placeholder="Product..." py-change="inv_filter_changed" py-input="inv_filter_changed" style="width: 150px;">
                     <datalist id="inv-prod-list"></datalist>
-                    <select id="inv-status-filter" py-change="load_inventory_table" style="width: 100px;">
+                    <select id="inv-status-filter" py-change="inv_filter_changed" style="width: 100px;">
                         <option value="All">All</option>
                         <option value="In_Stock" selected>In_Stock</option>
                         <option value="Consumed">Consumed</option>
                         <option value="Discarded">Discarded</option>
                         <option value="Flagged">Flagged</option>
                     </select>
-                    <input type="search" id="inv-bc-filter" placeholder="Barcode..." py-input="load_inventory_table" style="width: 110px;">
+                    <input type="search" id="inv-bc-filter" placeholder="Barcode..." py-input="inv_filter_changed" style="width: 110px;">
                     <button class="btn-warning" py-click="inv_clear_filters">Clear</button>
                     <button class="btn-primary" py-click="export_inventory_csv" style="margin-left: auto;">📥 Export CSV</button>
                 </div>
                 <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to Edit. Click table headers to sort.)</p>
-                <div id="inventory-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
+                <div id="inventory-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
+                    <button id="btn-inv-prev" class="btn-primary" py-click="inv_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto; padding: 5px 15px; margin-top:0;">⬅️ Previous</button>
+                    <span id="inv-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
+                    <button id="btn-inv-next" class="btn-primary" py-click="inv_next_page" style="width: auto; padding: 5px 15px; margin-top:0;">Next ➡️</button>
+                </div>
                 
                 <div id="edit-panel" class="edit-panel hidden">
                     <h3 style="color: #3498db; margin-top: 0;">Edit Item</h3>
@@ -318,12 +330,17 @@
                 <div class="filter-bar">
                     <input type="search" list="cat-filt-cat-list" id="cat-filt-cat" placeholder="Category..." py-change="cat_filter_changed" py-input="cat_filter_changed" style="width: 130px;">
                     <datalist id="cat-filt-cat-list"></datalist>
-                    <input type="search" list="cat-filt-prod-list" id="cat-filt-prod" placeholder="Product..." py-change="load_catalog_table" py-input="load_catalog_table" style="width: 150px;">
+                    <input type="search" list="cat-filt-prod-list" id="cat-filt-prod" placeholder="Product..." py-change="cat_filter_changed" py-input="cat_filter_changed" style="width: 150px;">
                     <datalist id="cat-filt-prod-list"></datalist>
                     <button class="btn-warning" py-click="cat_clear_filters">Clear</button>
                 </div>
                 <p class="admin-only" style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to load it into the form for editing or deletion.)</p>
-                <div id="catalog-table-container" style="max-height: 450px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 20px;"></div>
+                <div id="catalog-table-container" style="max-height: 450px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
+                    <button id="btn-cat-prev" class="btn-primary" py-click="cat_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto; padding: 5px 15px; margin-top:0;">⬅️ Previous</button>
+                    <span id="cat-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
+                    <button id="btn-cat-next" class="btn-primary" py-click="cat_next_page" style="width: auto; padding: 5px 15px; margin-top:0;">Next ➡️</button>
+                </div>
                 
                 <div class="edit-panel admin-only" id="cat-manage-panel" style="max-width: 800px; margin-top: 0;">
                     <h3 style="color: #3498db; margin-top: 0;">Manage Product Details</h3>
@@ -377,12 +394,12 @@
                     <button class="btn-warning" py-click="audit_clear_filters" style="margin-left: auto;">Clear Filters</button>
                     <button class="btn-primary" py-click="export_audit_csv" style="margin-left: 10px;">📥 Export CSV</button>
                 </div>
-                <div id="audit-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
+                <div id="audit-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px;"></div>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 0 10px;">
-                    <button id="btn-audit-prev" class="btn-primary" py-click="audit_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto;">⬅️ Previous</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
+                    <button id="btn-audit-prev" class="btn-primary" py-click="audit_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto; padding: 5px 15px; margin-top:0;">⬅️ Previous</button>
                     <span id="audit-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
-                    <button id="btn-audit-next" class="btn-primary" py-click="audit_next_page" style="width: auto;">Next ➡️</button>
+                    <button id="btn-audit-next" class="btn-primary" py-click="audit_next_page" style="width: auto; padding: 5px 15px; margin-top:0;">Next ➡️</button>
                 </div>
             </div>
 
@@ -394,7 +411,13 @@
                     <label>Role:</label><select id="usr-add-role"><option value="normal">Normal</option><option value="admin">Admin</option></select>
                     <button class="btn-success" py-click="add_user">Add User</button>
                 </div>
-                <div id="users-table-container" style="max-height: 400px; overflow-y: auto;"></div>
+                <div id="users-table-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 10px;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
+                    <button id="btn-usr-prev" class="btn-primary" py-click="usr_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto; padding: 5px 15px; margin-top:0;">⬅️ Previous</button>
+                    <span id="usr-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
+                    <button id="btn-usr-next" class="btn-primary" py-click="usr_next_page" style="width: auto; padding: 5px 15px; margin-top:0;">Next ➡️</button>
+                </div>
+                
                 <div id="usr-edit-panel" class="edit-panel hidden">
                     <h3 style="color: #f39c12; margin-top: 0;">Edit User</h3>
                     <input type="hidden" id="usr-edit-id">
@@ -542,12 +565,17 @@
             document.getElementById("cat-edit-thresh").value = "0";
         }
 
-        function selectNoteForEdit(id, author, content) {
+        function selectNoteForEdit(rowElement, id, author, content) {
+            let rows = document.querySelectorAll("#notes-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
+            rowElement.style.backgroundColor = "#f1c40f"; 
             document.getElementById("notes-edit-panel").classList.remove("hidden");
             document.getElementById("note-edit-id").value = id; document.getElementById("note-edit-author").value = author; 
             document.getElementById("note-edit-content").value = content; document.getElementById("notes-edit-panel").scrollIntoView({ behavior: 'smooth' });
         }
-        function selectItemForEdit(itemId, barcode, catalogId, lot, exp, recv, status, notes) {
+        
+        function selectItemForEdit(rowElement, itemId, barcode, catalogId, lot, exp, recv, status, notes) {
+            let rows = document.querySelectorAll("#inventory-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
+            rowElement.style.backgroundColor = "#f1c40f"; 
             document.getElementById("edit-panel").classList.remove("hidden");
             document.getElementById("edit-id").value = itemId; 
             document.getElementById("edit-product").value = catalogId; 
@@ -559,19 +587,26 @@
             document.getElementById("edit-notes").value = (notes !== "undefined" && notes) ? notes : "";
             document.getElementById("edit-panel").scrollIntoView({ behavior: 'smooth' });
         }
-        function selectCatalogForEdit(catId, name, category, thresh) {
+        
+        function selectCatalogForEdit(rowElement, catId, name, category, thresh) {
+            let rows = document.querySelectorAll("#catalog-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
+            rowElement.style.backgroundColor = "#f1c40f"; 
             document.getElementById("cat-edit-id").value = catId; 
             document.getElementById("cat-edit-name").value = name; 
             document.getElementById("cat-edit-category").value = category; 
             document.getElementById("cat-edit-thresh").value = thresh;
             document.getElementById("cat-manage-panel").scrollIntoView({ behavior: 'smooth' });
         }
+        
         function selectManualItem(rowElement, itemId, barcode) {
             let rows = document.querySelectorAll("#so-manual-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
             rowElement.style.backgroundColor = "#f1c40f"; 
             document.getElementById("so-selected-item-id").value = itemId; document.getElementById("so-selected-barcode").value = barcode;
         }
-        function selectUserForEdit(userId, name, role) {
+        
+        function selectUserForEdit(rowElement, userId, name, role) {
+            let rows = document.querySelectorAll("#users-table-container tr"); rows.forEach(r => r.style.backgroundColor = "");
+            rowElement.style.backgroundColor = "#f1c40f"; 
             document.getElementById("usr-edit-panel").classList.remove("hidden");
             document.getElementById("usr-edit-id").value = userId; document.getElementById("usr-edit-name").value = name; 
             document.getElementById("usr-edit-role").value = role; document.getElementById("usr-edit-pass").value = ""; 
@@ -596,6 +631,18 @@ current_user = None
 
 audit_current_page = 0
 AUDIT_PAGE_SIZE = 100
+
+inv_current_page = 0
+INV_PAGE_SIZE = 100
+
+cat_current_page = 0
+CAT_PAGE_SIZE = 100
+
+so_current_page = 0
+SO_PAGE_SIZE = 50
+
+usr_current_page = 0
+USR_PAGE_SIZE = 10
 
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
@@ -726,11 +773,11 @@ def update_nav_visuals(active_id):
 def nav_home(*args, **kwargs): update_nav_visuals("nav-home"); document.getElementById("page-home").classList.remove("hidden"); load_dashboard_home()
 def nav_stock_in(*args, **kwargs): update_nav_visuals("nav-stock-in"); document.getElementById("page-stock-in").classList.remove("hidden")
 def nav_scan_out(*args, **kwargs): update_nav_visuals("nav-scan-out"); document.getElementById("page-scan-out").classList.remove("hidden"); document.getElementById("so-barcode").focus()
-def nav_inventory(*args, **kwargs): update_nav_visuals("nav-inventory"); document.getElementById("page-inventory").classList.remove("hidden"); load_inventory_table()
+def nav_inventory(*args, **kwargs): update_nav_visuals("nav-inventory"); document.getElementById("page-inventory").classList.remove("hidden"); reset_and_load_inventory()
 def nav_notes(*args, **kwargs): update_nav_visuals(None); document.getElementById("page-notes").classList.remove("hidden"); load_notes_table()
-def nav_catalog(*args, **kwargs): update_nav_visuals("nav-catalog"); document.getElementById("page-catalog").classList.remove("hidden"); load_catalog_table()
+def nav_catalog(*args, **kwargs): update_nav_visuals("nav-catalog"); document.getElementById("page-catalog").classList.remove("hidden"); reset_and_load_catalog()
 def nav_audit(*args, **kwargs): update_nav_visuals("nav-audit"); document.getElementById("page-audit").classList.remove("hidden"); setup_audit_page()
-def nav_users(*args, **kwargs): update_nav_visuals("nav-users"); document.getElementById("page-users").classList.remove("hidden"); load_user_table()
+def nav_users(*args, **kwargs): update_nav_visuals("nav-users"); document.getElementById("page-users").classList.remove("hidden"); reset_and_load_user()
 def nav_settings(*args, **kwargs): update_nav_visuals("nav-settings"); document.getElementById("page-settings").classList.remove("hidden")
 def logout(*args, **kwargs): window.location.reload()
 
@@ -764,12 +811,14 @@ def post_notice(*args, **kwargs):
     except: pass
 
 def load_notes_table(*args, **kwargs):
-    document.getElementById("notes-edit-panel").classList.add("hidden"); cur = db_conn.cursor(); q = "SELECT note_id, username, content, strftime('%Y-%m-%d %H:%M:%S', timestamp, 'localtime') FROM Notes ORDER BY timestamp ASC"
+    document.getElementById("notes-edit-panel").classList.add("hidden"); 
+    document.getElementById("note-edit-id").value = ""
+    cur = db_conn.cursor(); q = "SELECT note_id, username, content, strftime('%Y-%m-%d %H:%M:%S', timestamp, 'localtime') FROM Notes ORDER BY timestamp ASC"
     html = "<table><tr><th>Posted By</th><th>Content</th><th>Time</th></tr>"
     for r in cur.execute(q):
         safe_author = str(r[1]).replace("'", "\\'").replace('"', '&quot;')
         safe_content = str(r[2]).replace("'", "\\'").replace('"', '&quot;')
-        html += f"<tr onclick=\"selectNoteForEdit({r[0]}, '{safe_author}', '{safe_content}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[2]).replace('<','&lt;')}</td><td style='font-size:11px;'>{r[3]}</td></tr>"
+        html += f"<tr onclick=\"selectNoteForEdit(this, {r[0]}, '{safe_author}', '{safe_content}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{str(r[2]).replace('<','&lt;')}</td><td style='font-size:11px;'>{r[3]}</td></tr>"
     document.getElementById("notes-table-container").innerHTML = html + "</table>"
     cont = document.getElementById("notes-table-container")
     if cont: cont.scrollTop = cont.scrollHeight
@@ -846,6 +895,22 @@ def setup_scan_out_page():
     document.getElementById("so-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("so-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    reset_and_load_so_manual()
+
+def reset_and_load_so_manual():
+    global so_current_page
+    so_current_page = 0
+    load_so_manual_table()
+
+def so_prev_page(*args, **kwargs):
+    global so_current_page
+    if so_current_page > 0:
+        so_current_page -= 1
+        load_so_manual_table()
+
+def so_next_page(*args, **kwargs):
+    global so_current_page
+    so_current_page += 1
     load_so_manual_table()
 
 def so_filter_changed(*args, **kwargs):
@@ -853,17 +918,28 @@ def so_filter_changed(*args, **kwargs):
     if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("so-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
-    load_so_manual_table()
+    reset_and_load_so_manual()
 
 def so_clear_filters(*args, **kwargs): document.getElementById("so-cat-filter").value = ""; document.getElementById("so-prod-filter").value = ""; so_filter_changed()
 
 def load_so_manual_table(*args, **kwargs):
+    global so_current_page
+    document.getElementById("so-selected-item-id").value = ""
+    document.getElementById("so-selected-barcode").value = ""
+    
     cat = document.getElementById("so-cat-filter").value.strip().lower(); prod = document.getElementById("so-prod-filter").value.strip().lower()
     q = "SELECT i.item_id, i.barcode_lot_number, c.product_name, i.catalog_number, i.expiry_date, i.received_date FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.status = 'In_Stock'"; p = []
     if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
     if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
+    
+    q += " ORDER BY i.received_date DESC, i.item_id DESC LIMIT ? OFFSET ?"
+    p.extend([SO_PAGE_SIZE, so_current_page * SO_PAGE_SIZE])
+    
     html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot number</th><th onclick='sortTable(this, 2)'>Catalog Number</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th></tr>"
-    for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p): 
+    
+    fetched_count = 0
+    for r in db_conn.cursor().execute(q, p): 
+        fetched_count += 1
         safe_bc = str(r[1]).replace("'", "\\'")
         cat_num = str(r[3]).strip()
         if not cat_num: cat_num = "/"
@@ -872,6 +948,31 @@ def load_so_manual_table(*args, **kwargs):
         safe_cat_num_title = cat_num.replace('"', '&quot;').replace('<','&lt;')
         html += f"<tr onclick=\"selectManualItem(this, {r[0]}, '{safe_bc}')\"><td title=\"{safe_prod_title}\">{str(r[2]).replace('<','&lt;')}</td><td title=\"{safe_bc_title}\">{str(r[1]).replace('<','&lt;')}</td><td title=\"{safe_cat_num_title}\">{cat_num.replace('<','&lt;')}</td><td>{str(r[4]).strip() or '/'}</td><td>{str(r[5]).strip() or '/'}</td></tr>"
     document.getElementById("so-manual-table-container").innerHTML = html + "</table>"
+    
+    doc_ind = document.getElementById("so-page-indicator")
+    if doc_ind: doc_ind.innerText = f"Page {so_current_page + 1}"
+    
+    btn_p = document.getElementById("btn-so-prev")
+    if btn_p:
+        if so_current_page == 0:
+            btn_p.setAttribute("disabled", "true")
+            btn_p.style.opacity = "0.5"
+            btn_p.style.cursor = "not-allowed"
+        else:
+            btn_p.removeAttribute("disabled")
+            btn_p.style.opacity = "1"
+            btn_p.style.cursor = "pointer"
+            
+    btn_n = document.getElementById("btn-so-next")
+    if btn_n:
+        if fetched_count < SO_PAGE_SIZE:
+            btn_n.setAttribute("disabled", "true")
+            btn_n.style.opacity = "0.5"
+            btn_n.style.cursor = "not-allowed"
+        else:
+            btn_n.removeAttribute("disabled")
+            btn_n.style.opacity = "1"
+            btn_n.style.cursor = "pointer"
 
 def get_sort_date(d_str):
     s = str(d_str).strip()
@@ -908,7 +1009,6 @@ def consume_item_via_scan(*args, **kwargs):
                 if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): 
                     document.getElementById("so-barcode").value = ""; return
                     
-        # THE FIX: Properly nested js.confirm inside the if res block
         if js.confirm("Consume selected?"):
             cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (item_id,))
             cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
@@ -916,7 +1016,7 @@ def consume_item_via_scan(*args, **kwargs):
             mark_dirty()
             document.getElementById("so-barcode").value = ""
             load_dashboard_home()
-            setup_scan_out_page()
+            reset_and_load_so_manual()
             js.alert("Consumed!")
     else: js.alert("Not In-Stock.")
 
@@ -950,17 +1050,32 @@ def consume_item_via_manual(*args, **kwargs):
             if sel and oldest and sel['dt'] > oldest['dt']:
                 if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): return
                 
-        # THE FIX: Properly nested js.confirm inside the if res block
-        if js.confirm("Consume selected?"):
-            db_conn.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (id,))
-            db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
-            db_conn.commit(); mark_dirty(); setup_scan_out_page(); load_dashboard_home(); js.alert("Consumed!")
+    if js.confirm("Consume selected?"):
+        db_conn.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (id,))
+        db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
+        db_conn.commit(); mark_dirty(); reset_and_load_so_manual(); load_dashboard_home(); js.alert("Consumed!")
 
 def setup_inventory_page():
     cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
     document.getElementById("inv-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
     cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("inv-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    reset_and_load_inventory()
+
+def reset_and_load_inventory():
+    global inv_current_page
+    inv_current_page = 0
+    load_inventory_table()
+
+def inv_prev_page(*args, **kwargs):
+    global inv_current_page
+    if inv_current_page > 0:
+        inv_current_page -= 1
+        load_inventory_table()
+
+def inv_next_page(*args, **kwargs):
+    global inv_current_page
+    inv_current_page += 1
     load_inventory_table()
 
 def inv_filter_changed(*args, **kwargs):
@@ -968,12 +1083,15 @@ def inv_filter_changed(*args, **kwargs):
     if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("inv-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
-    load_inventory_table()
+    reset_and_load_inventory()
 
 def inv_clear_filters(*args, **kwargs): document.getElementById("inv-cat-filter").value = ""; document.getElementById("inv-prod-filter").value = ""; document.getElementById("inv-status-filter").value = "All"; document.getElementById("inv-bc-filter").value = ""; inv_filter_changed() 
 
 def load_inventory_table(*args, **kwargs):
+    global inv_current_page
     document.getElementById("edit-panel").classList.add("hidden")
+    document.getElementById("edit-id").value = ""
+    
     cat = document.getElementById("inv-cat-filter").value.strip().lower(); prod = document.getElementById("inv-prod-filter").value.strip().lower(); stat = document.getElementById("inv-status-filter").value; bc = document.getElementById("inv-bc-filter").value.strip().lower()
     
     q = "SELECT i.item_id, i.barcode_lot_number, c.catalog_id, c.product_name, i.catalog_number, i.expiry_date, i.received_date, i.status, i.notes FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"; p = []
@@ -982,9 +1100,14 @@ def load_inventory_table(*args, **kwargs):
     if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
     if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
     
+    q += " ORDER BY i.received_date DESC, i.item_id DESC LIMIT ? OFFSET ?"
+    p.extend([INV_PAGE_SIZE, inv_current_page * INV_PAGE_SIZE])
+    
     html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot</th><th onclick='sortTable(this, 2)'>Catalog Num</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th><th>Status</th><th>Notes</th></tr>"
     
-    for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p):
+    fetched_count = 0
+    for r in db_conn.cursor().execute(q, p):
+        fetched_count += 1
         safe_bc = str(r[1]).replace("'", "\\'")
         cat_num = str(r[4]).strip()
         if not cat_num: cat_num = "/"
@@ -1008,10 +1131,27 @@ def load_inventory_table(*args, **kwargs):
         safe_cat_num_title = cat_num.replace('"', '&quot;').replace('<','&lt;')
         
         c = "row-flagged" if r[7] == "Flagged" else ""
-        attr = f"onclick=\"selectItemForEdit({r[0]}, '{safe_bc}', {r[2]}, '{safe_lot}', '{safe_exp}', '{safe_recv}', '{safe_stat}', '{safe_notes_js}')\"" if current_user['role'] == 'admin' else ""
+        attr = f"onclick=\"selectItemForEdit(this, {r[0]}, '{safe_bc}', {r[2]}, '{safe_lot}', '{safe_exp}', '{safe_recv}', '{safe_stat}', '{safe_notes_js}')\"" if current_user['role'] == 'admin' else ""
         
         html += f"<tr class='{c}' {attr}><td title=\"{safe_prod_title}\">{str(r[3]).replace('<','&lt;')}</td><td title=\"{safe_bc_title}\">{str(r[1]).replace('<','&lt;')}</td><td title=\"{safe_cat_num_title}\">{cat_num.replace('<','&lt;')}</td><td>{exp_date.replace('<','&lt;')}</td><td>{recv_date.replace('<','&lt;')}</td><td>{str(r[7]).replace('<','&lt;')}</td><td title=\"{safe_notes_html}\" style=\"font-size:16px;\">{display_notes}</td></tr>"
     document.getElementById("inventory-table-container").innerHTML = html + "</table>"
+    
+    doc_ind = document.getElementById("inv-page-indicator")
+    if doc_ind: doc_ind.innerText = f"Page {inv_current_page + 1}"
+    
+    btn_p = document.getElementById("btn-inv-prev")
+    if btn_p:
+        if inv_current_page == 0:
+            btn_p.setAttribute("disabled", "true"); btn_p.style.opacity = "0.5"; btn_p.style.cursor = "not-allowed"
+        else:
+            btn_p.removeAttribute("disabled"); btn_p.style.opacity = "1"; btn_p.style.cursor = "pointer"
+            
+    btn_n = document.getElementById("btn-inv-next")
+    if btn_n:
+        if fetched_count < INV_PAGE_SIZE:
+            btn_n.setAttribute("disabled", "true"); btn_n.style.opacity = "0.5"; btn_n.style.cursor = "not-allowed"
+        else:
+            btn_n.removeAttribute("disabled"); btn_n.style.opacity = "1"; btn_n.style.cursor = "pointer"
 
 def export_inventory_csv(*args, **kwargs):
     cat = document.getElementById("inv-cat-filter").value.strip().lower()
@@ -1092,6 +1232,22 @@ def setup_catalog_page():
     document.getElementById("cat-form-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cats])
     cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("cat-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
+    reset_and_load_catalog()
+
+def reset_and_load_catalog():
+    global cat_current_page
+    cat_current_page = 0
+    load_catalog_table()
+
+def cat_prev_page(*args, **kwargs):
+    global cat_current_page
+    if cat_current_page > 0:
+        cat_current_page -= 1
+        load_catalog_table()
+
+def cat_next_page(*args, **kwargs):
+    global cat_current_page
+    cat_current_page += 1
     load_catalog_table()
 
 def cat_filter_changed(*args, **kwargs):
@@ -1099,22 +1255,49 @@ def cat_filter_changed(*args, **kwargs):
     if cat: cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? ORDER BY product_name", (f"%{cat}%",))
     else: cur.execute("SELECT product_name FROM Catalog ORDER BY product_name")
     document.getElementById("cat-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall()])
-    load_catalog_table()
+    reset_and_load_catalog()
 
 def cat_clear_filters(*args, **kwargs): document.getElementById("cat-filt-cat").value = ""; document.getElementById("cat-filt-prod").value = ""; cat_filter_changed()
 
 def load_catalog_table(*args, **kwargs):
+    global cat_current_page
+    js.window.clearCatalogForm()
+
     cat = document.getElementById("cat-filt-cat").value.strip().lower(); prod = document.getElementById("cat-filt-prod").value.strip().lower()
     q = "SELECT c.catalog_id, c.product_name, c.category, COUNT(i.item_id) as current_stock, c.low_stock_threshold FROM Catalog c LEFT JOIN Inventory i ON c.catalog_id = i.catalog_id AND i.status = 'In_Stock' WHERE 1=1"; p = []
     if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
     if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
+    
+    q += " GROUP BY c.catalog_id ORDER BY c.product_name ASC LIMIT ? OFFSET ?"
+    p.extend([CAT_PAGE_SIZE, cat_current_page * CAT_PAGE_SIZE])
+    
     html = "<table><tr><th>Product</th><th>Category</th><th>Stock</th><th>Threshold</th></tr>"
-    for r in db_conn.cursor().execute(q + " GROUP BY c.catalog_id ORDER BY c.product_name ASC", p):
-        safe_n = str(r[1]).replace("'", "\\'"); safe_c = str(r[2]).replace("'", "\\'"); attr = f"onclick=\"selectCatalogForEdit({r[0]}, '{safe_n}', '{safe_c}', {r[4]})\"" if current_user['role'] == 'admin' else ""
+    fetched_count = 0
+    for r in db_conn.cursor().execute(q, p):
+        fetched_count += 1
+        safe_n = str(r[1]).replace("'", "\\'"); safe_c = str(r[2]).replace("'", "\\'"); 
+        attr = f"onclick=\"selectCatalogForEdit(this, {r[0]}, '{safe_n}', '{safe_c}', {r[4]})\"" if current_user['role'] == 'admin' else ""
         safe_prod_title = str(r[1]).replace('"', '&quot;').replace('<','&lt;')
         safe_cat_title = str(r[2]).replace('"', '&quot;').replace('<','&lt;')
         html += f"<tr {attr}><td title=\"{safe_prod_title}\">{str(r[1]).replace('<','&lt;')}</td><td title=\"{safe_cat_title}\">{str(r[2]).replace('<','&lt;')}</td><td>{r[3]}</td><td>{r[4]}</td></tr>"
     document.getElementById("catalog-table-container").innerHTML = html + "</table>"
+    
+    doc_ind = document.getElementById("cat-page-indicator")
+    if doc_ind: doc_ind.innerText = f"Page {cat_current_page + 1}"
+    
+    btn_p = document.getElementById("btn-cat-prev")
+    if btn_p:
+        if cat_current_page == 0:
+            btn_p.setAttribute("disabled", "true"); btn_p.style.opacity = "0.5"; btn_p.style.cursor = "not-allowed"
+        else:
+            btn_p.removeAttribute("disabled"); btn_p.style.opacity = "1"; btn_p.style.cursor = "pointer"
+            
+    btn_n = document.getElementById("btn-cat-next")
+    if btn_n:
+        if fetched_count < CAT_PAGE_SIZE:
+            btn_n.setAttribute("disabled", "true"); btn_n.style.opacity = "0.5"; btn_n.style.cursor = "not-allowed"
+        else:
+            btn_n.removeAttribute("disabled"); btn_n.style.opacity = "1"; btn_n.style.cursor = "pointer"
 
 def add_catalog_item(*args, **kwargs):
     n = document.getElementById("cat-edit-name").value.strip()
@@ -1131,7 +1314,7 @@ def add_catalog_item(*args, **kwargs):
         mark_dirty()
         js.alert("Product Added!")
         js.window.clearCatalogForm()
-        setup_catalog_page()
+        reset_and_load_catalog()
         setup_stock_in_page()
         setup_scan_out_page()
         setup_inventory_page()
@@ -1161,7 +1344,7 @@ def update_catalog_item(*args, **kwargs):
             db_conn.commit()
             mark_dirty()
             js.alert("Product Updated!")
-            setup_catalog_page()
+            load_catalog_table()
             setup_stock_in_page()
             setup_scan_out_page()
             setup_inventory_page()
@@ -1180,7 +1363,7 @@ def delete_catalog_item(*args, **kwargs):
         db_conn.commit()
         mark_dirty()
         js.window.clearCatalogForm()
-        setup_catalog_page()
+        load_catalog_table()
         setup_stock_in_page()
         setup_scan_out_page()
         setup_inventory_page()
@@ -1352,11 +1535,53 @@ def export_audit_csv(*args, **kwargs):
         
     js.window.downloadCSV(output.getvalue(), "Audit_Export.csv")
 
+def reset_and_load_user():
+    global usr_current_page
+    usr_current_page = 0
+    load_user_table()
+
+def usr_prev_page(*args, **kwargs):
+    global usr_current_page
+    if usr_current_page > 0:
+        usr_current_page -= 1
+        load_user_table()
+
+def usr_next_page(*args, **kwargs):
+    global usr_current_page
+    usr_current_page += 1
+    load_user_table()
+
 def load_user_table(*args, **kwargs):
-    document.getElementById("usr-edit-panel").classList.add("hidden"); html = "<table><tr><th>Username</th><th>Role</th></tr>"
-    for r in db_conn.cursor().execute("SELECT user_id, username, role FROM Users WHERE is_active=1 ORDER BY username ASC"):
-        html += f"<tr onclick=\"selectUserForEdit({r[0]}, '{str(r[1]).replace(chr(39),'')}', '{r[2]}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td></tr>"
+    global usr_current_page
+    document.getElementById("usr-edit-panel").classList.add("hidden")
+    document.getElementById("usr-edit-id").value = ""
+    html = "<table><tr><th>Username</th><th>Role</th></tr>"
+    
+    q = "SELECT user_id, username, role FROM Users WHERE is_active=1 ORDER BY username ASC LIMIT ? OFFSET ?"
+    p = (USR_PAGE_SIZE, usr_current_page * USR_PAGE_SIZE)
+    
+    fetched_count = 0
+    for r in db_conn.cursor().execute(q, p):
+        fetched_count += 1
+        html += f"<tr onclick=\"selectUserForEdit(this, {r[0]}, '{str(r[1]).replace(chr(39),'')}', '{r[2]}')\"><td>{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td></tr>"
     document.getElementById("users-table-container").innerHTML = html + "</table>"
+    
+    doc_ind = document.getElementById("usr-page-indicator")
+    if doc_ind: doc_ind.innerText = f"Page {usr_current_page + 1}"
+    
+    btn_p = document.getElementById("btn-usr-prev")
+    if btn_p:
+        if usr_current_page == 0:
+            btn_p.setAttribute("disabled", "true"); btn_p.style.opacity = "0.5"; btn_p.style.cursor = "not-allowed"
+        else:
+            btn_p.removeAttribute("disabled"); btn_p.style.opacity = "1"; btn_p.style.cursor = "pointer"
+            
+    btn_n = document.getElementById("btn-usr-next")
+    if btn_n:
+        if fetched_count < USR_PAGE_SIZE:
+            btn_n.setAttribute("disabled", "true"); btn_n.style.opacity = "0.5"; btn_n.style.cursor = "not-allowed"
+        else:
+            btn_n.removeAttribute("disabled"); btn_n.style.opacity = "1"; btn_n.style.cursor = "pointer"
 
 def add_user(*args, **kwargs):
     u = document.getElementById("usr-add-name").value.strip()
@@ -1374,7 +1599,7 @@ def add_user(*args, **kwargs):
         db_conn.execute("INSERT INTO Users (username, password_hash, role, is_active) VALUES (?, ?, ?, 1)", (u, hash_pw(p), r))
         db_conn.commit()
         mark_dirty()
-        load_user_table()
+        reset_and_load_user()
         document.getElementById("usr-add-name").value = ""
         document.getElementById("usr-add-pass").value = ""
         js.alert("Added!")

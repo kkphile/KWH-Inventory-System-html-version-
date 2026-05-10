@@ -122,8 +122,8 @@
         <div class="card">
             <div class="header"><h2 id="sys-header-display" style="margin: 0;">KWH Inventory System</h2></div>
             <div style="border: 2px dashed var(--theme-color); padding: 20px; background: #f8f9fa;">
-                <p><strong>Select Database File</strong></p>
-                <input type="file" id="db-upload" accept=".db">
+                <p><strong id="upload-label" style="color: #e67e22;">⚙️ Loading System... Please wait</strong></p>
+                <input type="file" id="db-upload" accept=".db" disabled>
             </div>
             <div id="loading-msg" style="color: #2ecc71; font-weight: bold; margin-top: 10px;"></div>
         </div>
@@ -278,6 +278,7 @@
                     </select>
                     <input type="search" id="inv-bc-filter" placeholder="Barcode..." py-input="load_inventory_table" style="width: 110px;">
                     <button class="btn-warning" py-click="inv_clear_filters">Clear</button>
+                    <button class="btn-primary" py-click="export_inventory_csv" style="margin-left: auto;">📥 Export CSV</button>
                 </div>
                 <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px; margin-bottom: 10px;">(Admins: Click any row below to Edit. Click table headers to sort.)</p>
                 <div id="inventory-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
@@ -286,8 +287,9 @@
                     <h3 style="color: #3498db; margin-top: 0;">Edit Item</h3>
                     <input type="hidden" id="edit-id">
                     <div class="edit-grid" style="grid-template-columns: 140px 1fr 140px 1fr;">
-                        <label>Barcode/Lot number:</label><input type="text" id="edit-barcode">
                         <label>Product:</label><select id="edit-product"></select>
+                        <label>Barcode/Lot number:</label><input type="text" id="edit-barcode">
+                        
                         <label>Catalog Number (Optional):</label><input type="text" id="edit-lot">
                         <label>Status:</label>
                         <select id="edit-status">
@@ -296,8 +298,12 @@
                             <option value="Discarded">Discarded</option>
                             <option value="Flagged">Flagged</option>
                         </select>
+                        
                         <label>Expiry Date (Optional):</label><input type="date" id="edit-exp" min="1000-01-01" max="9999-12-31">
                         <label>Received Date:</label><input type="date" id="edit-recv" min="1000-01-01" max="9999-12-31">
+                        
+                        <label>Notes:</label><input type="text" id="edit-notes" placeholder="Optional short note...">
+                        <span></span><span></span>
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-warning" py-click="update_item">💾 Update Item</button>
@@ -351,7 +357,7 @@
             <div id="page-audit" class="hidden">
                 <h2 class="page-title">Audit Log</h2>
                 <div class="filter-bar">
-                    <select id="audit-filt-action" py-change="load_audit_table" style="width: 120px;">
+                    <select id="audit-filt-action" py-change="filter_audit" style="width: 120px;">
                         <option value="All">All Actions</option>
                         <option value="In_Stock">In_Stock</option>
                         <option value="Consumed">Consumed</option>
@@ -361,16 +367,23 @@
                     </select>
                     <input type="search" list="audit-filt-cat-list" id="audit-filt-cat" placeholder="Category..." py-change="audit_cat_changed" py-input="audit_cat_changed" style="width: 120px;">
                     <datalist id="audit-filt-cat-list"></datalist>
-                    <input type="search" list="audit-filt-prod-list" id="audit-filt-prod" placeholder="Product..." py-change="load_audit_table" py-input="load_audit_table" style="width: 140px;">
+                    <input type="search" list="audit-filt-prod-list" id="audit-filt-prod" placeholder="Product..." py-change="filter_audit" py-input="filter_audit" style="width: 140px;">
                     <datalist id="audit-filt-prod-list"></datalist>
-                    <input type="search" id="audit-filt-barcode" placeholder="Barcode..." py-input="load_audit_table" style="width: 120px;">
+                    <input type="search" id="audit-filt-barcode" placeholder="Barcode..." py-input="filter_audit" style="width: 120px;">
                 </div>
                 <div class="filter-bar" style="margin-top: -5px;">
                     <label>From:</label><input type="date" id="audit-filt-start" py-change="audit_date_changed" min="1000-01-01" max="9999-12-31" onkeydown="return false">
                     <label>To:</label><input type="date" id="audit-filt-end" py-change="audit_date_changed" min="1000-01-01" max="9999-12-31" onkeydown="return false">
                     <button class="btn-warning" py-click="audit_clear_filters" style="margin-left: auto;">Clear Filters</button>
+                    <button class="btn-primary" py-click="export_audit_csv" style="margin-left: 10px;">📥 Export CSV</button>
                 </div>
                 <div id="audit-table-container" style="max-height: 550px; overflow-y: auto; border: 1px solid #ddd;"></div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 0 10px;">
+                    <button id="btn-audit-prev" class="btn-primary" py-click="audit_prev_page" disabled style="opacity: 0.5; cursor: not-allowed; width: auto;">⬅️ Previous</button>
+                    <span id="audit-page-indicator" style="font-weight: bold; color: var(--theme-color);">Page 1</span>
+                    <button id="btn-audit-next" class="btn-primary" py-click="audit_next_page" style="width: auto;">Next ➡️</button>
+                </div>
             </div>
 
             <div id="page-users" class="hidden">
@@ -494,6 +507,18 @@
             } catch (err) { if (err.name !== 'AbortError') alert("Save failed."); }
         }
 
+        window.downloadCSV = function(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
         function bindEnter(inputId, buttonId) {
             let el = document.getElementById(inputId);
             if(el) { el.addEventListener("keydown", function(event) { if (event.key === "Enter") { event.preventDefault(); document.getElementById(buttonId).click(); } }); }
@@ -522,13 +547,17 @@
             document.getElementById("note-edit-id").value = id; document.getElementById("note-edit-author").value = author; 
             document.getElementById("note-edit-content").value = content; document.getElementById("notes-edit-panel").scrollIntoView({ behavior: 'smooth' });
         }
-        function selectItemForEdit(itemId, barcode, catalogId, lot, exp, recv, status) {
+        function selectItemForEdit(itemId, barcode, catalogId, lot, exp, recv, status, notes) {
             document.getElementById("edit-panel").classList.remove("hidden");
-            document.getElementById("edit-id").value = itemId; document.getElementById("edit-barcode").value = barcode; 
-            document.getElementById("edit-product").value = catalogId; document.getElementById("edit-lot").value = lot !== "/" ? lot : "";
+            document.getElementById("edit-id").value = itemId; 
+            document.getElementById("edit-product").value = catalogId; 
+            document.getElementById("edit-barcode").value = barcode; 
+            document.getElementById("edit-lot").value = lot !== "/" ? lot : "";
             document.getElementById("edit-exp").value = (exp && exp !== "/" && exp !== "None") ? exp.split(" ")[0] : "";
             document.getElementById("edit-recv").value = (recv && recv !== "/" && recv !== "None") ? recv.split(" ")[0] : "";
-            document.getElementById("edit-status").value = status; document.getElementById("edit-panel").scrollIntoView({ behavior: 'smooth' });
+            document.getElementById("edit-status").value = status; 
+            document.getElementById("edit-notes").value = (notes !== "undefined" && notes) ? notes : "";
+            document.getElementById("edit-panel").scrollIntoView({ behavior: 'smooth' });
         }
         function selectCatalogForEdit(catId, name, category, thresh) {
             document.getElementById("cat-edit-id").value = catId; 
@@ -557,11 +586,16 @@ import sqlite3
 import hashlib
 import js
 import datetime
+import csv
+import io
 from pyscript import document, window
 from pyodide.ffi import create_proxy, to_js
 
 db_conn = None
 current_user = None
+
+audit_current_page = 0
+AUDIT_PAGE_SIZE = 100
 
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
@@ -580,29 +614,36 @@ def setup_database_tables():
     cols = [info[1] for info in cur.fetchall()]
     if 'is_active' not in cols: cur.execute("ALTER TABLE Users ADD COLUMN is_active INTEGER DEFAULT 1")
     
+    cur.execute("PRAGMA table_info(Inventory)")
+    cols_inv = [info[1] for info in cur.fetchall()]
+    if 'notes' not in cols_inv:
+        try: cur.execute("ALTER TABLE Inventory ADD COLUMN notes TEXT DEFAULT ''")
+        except: pass
+    
     cur.execute("PRAGMA table_info(AuditLog)")
     cols_audit = [info[1] for info in cur.fetchall()]
+    
     if 'catalog_id' not in cols_audit:
         try: cur.execute("ALTER TABLE AuditLog ADD COLUMN catalog_id INTEGER")
         except: pass
-        try: cur.execute("UPDATE AuditLog SET catalog_id = (SELECT catalog_id FROM Inventory WHERE Inventory.item_id = AuditLog.item_id) WHERE catalog_id IS NULL")
-        except: pass
+    try: cur.execute("UPDATE AuditLog SET catalog_id = (SELECT catalog_id FROM Inventory WHERE Inventory.item_id = AuditLog.item_id) WHERE catalog_id IS NULL")
+    except: pass
         
     if 'product_snap' not in cols_audit:
         try: cur.execute("ALTER TABLE AuditLog ADD COLUMN product_snap TEXT")
         except: pass
-        try: cur.execute("UPDATE AuditLog SET product_snap = (SELECT product_name FROM Catalog WHERE Catalog.catalog_id = AuditLog.catalog_id) WHERE product_snap IS NULL")
-        except: pass
-        try: cur.execute("UPDATE AuditLog SET product_snap = (SELECT c.product_name FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.item_id = AuditLog.item_id) WHERE product_snap IS NULL")
-        except: pass
+    try: cur.execute("UPDATE AuditLog SET product_snap = (SELECT product_name FROM Catalog WHERE Catalog.catalog_id = AuditLog.catalog_id) WHERE product_snap IS NULL")
+    except: pass
+    try: cur.execute("UPDATE AuditLog SET product_snap = (SELECT c.product_name FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.item_id = AuditLog.item_id) WHERE product_snap IS NULL")
+    except: pass
 
     if 'category_snap' not in cols_audit:
         try: cur.execute("ALTER TABLE AuditLog ADD COLUMN category_snap TEXT")
         except: pass
-        try: cur.execute("UPDATE AuditLog SET category_snap = (SELECT category FROM Catalog WHERE Catalog.catalog_id = AuditLog.catalog_id) WHERE category_snap IS NULL")
-        except: pass
-        try: cur.execute("UPDATE AuditLog SET category_snap = (SELECT c.category FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.item_id = AuditLog.item_id) WHERE category_snap IS NULL")
-        except: pass
+    try: cur.execute("UPDATE AuditLog SET category_snap = (SELECT category FROM Catalog WHERE Catalog.catalog_id = AuditLog.catalog_id) WHERE category_snap IS NULL")
+    except: pass
+    try: cur.execute("UPDATE AuditLog SET category_snap = (SELECT c.category FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE i.item_id = AuditLog.item_id) WHERE category_snap IS NULL")
+    except: pass
 
     cur.execute('''CREATE TABLE IF NOT EXISTS Notes (note_id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, content TEXT NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
     cur.execute('''CREATE TABLE IF NOT EXISTS Settings (setting_key TEXT PRIMARY KEY, setting_value TEXT)''')
@@ -688,7 +729,7 @@ def nav_scan_out(*args, **kwargs): update_nav_visuals("nav-scan-out"); document.
 def nav_inventory(*args, **kwargs): update_nav_visuals("nav-inventory"); document.getElementById("page-inventory").classList.remove("hidden"); load_inventory_table()
 def nav_notes(*args, **kwargs): update_nav_visuals(None); document.getElementById("page-notes").classList.remove("hidden"); load_notes_table()
 def nav_catalog(*args, **kwargs): update_nav_visuals("nav-catalog"); document.getElementById("page-catalog").classList.remove("hidden"); load_catalog_table()
-def nav_audit(*args, **kwargs): update_nav_visuals("nav-audit"); document.getElementById("page-audit").classList.remove("hidden"); load_audit_table()
+def nav_audit(*args, **kwargs): update_nav_visuals("nav-audit"); document.getElementById("page-audit").classList.remove("hidden"); setup_audit_page()
 def nav_users(*args, **kwargs): update_nav_visuals("nav-users"); document.getElementById("page-users").classList.remove("hidden"); load_user_table()
 def nav_settings(*args, **kwargs): update_nav_visuals("nav-settings"); document.getElementById("page-settings").classList.remove("hidden")
 def logout(*args, **kwargs): window.location.reload()
@@ -867,14 +908,16 @@ def consume_item_via_scan(*args, **kwargs):
                 if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): 
                     document.getElementById("so-barcode").value = ""; return
                     
-        cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (item_id,))
-        cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
-        db_conn.commit()
-        mark_dirty()
-        document.getElementById("so-barcode").value = ""
-        load_dashboard_home()
-        setup_scan_out_page()
-        js.alert("Consumed!")
+        # THE FIX: Properly nested js.confirm inside the if res block
+        if js.confirm("Consume selected?"):
+            cur.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (item_id,))
+            cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (item_id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
+            db_conn.commit()
+            mark_dirty()
+            document.getElementById("so-barcode").value = ""
+            load_dashboard_home()
+            setup_scan_out_page()
+            js.alert("Consumed!")
     else: js.alert("Not In-Stock.")
 
 def consume_item_via_manual(*args, **kwargs):
@@ -907,10 +950,11 @@ def consume_item_via_manual(*args, **kwargs):
             if sel and oldest and sel['dt'] > oldest['dt']:
                 if not js.confirm(f"FEFO ALERT! Older exists: Catalog Number {oldest['lot']} (Exp: {oldest['exp']}). Bypass?"): return
                 
-    if js.confirm("Consume selected?"):
-        db_conn.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (id,))
-        db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
-        db_conn.commit(); mark_dirty(); setup_scan_out_page(); load_dashboard_home(); js.alert("Consumed!")
+        # THE FIX: Properly nested js.confirm inside the if res block
+        if js.confirm("Consume selected?"):
+            db_conn.execute("UPDATE Inventory SET status='Consumed' WHERE item_id=?", (id,))
+            db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Consumed', ?, ?, ?, ?)", (id, bc, current_user['id'], out_date+" "+datetime.datetime.now().strftime("%H:%M:%S"), cat_id, prod_name, cat_name))
+            db_conn.commit(); mark_dirty(); setup_scan_out_page(); load_dashboard_home(); js.alert("Consumed!")
 
 def setup_inventory_page():
     cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
@@ -931,12 +975,15 @@ def inv_clear_filters(*args, **kwargs): document.getElementById("inv-cat-filter"
 def load_inventory_table(*args, **kwargs):
     document.getElementById("edit-panel").classList.add("hidden")
     cat = document.getElementById("inv-cat-filter").value.strip().lower(); prod = document.getElementById("inv-prod-filter").value.strip().lower(); stat = document.getElementById("inv-status-filter").value; bc = document.getElementById("inv-bc-filter").value.strip().lower()
-    q = "SELECT i.item_id, i.barcode_lot_number, c.catalog_id, c.product_name, i.catalog_number, i.expiry_date, i.received_date, i.status FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"; p = []
+    
+    q = "SELECT i.item_id, i.barcode_lot_number, c.catalog_id, c.product_name, i.catalog_number, i.expiry_date, i.received_date, i.status, i.notes FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"; p = []
     if stat != "All": q += " AND i.status = ?"; p.append(stat)
     if bc: q += " AND LOWER(i.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
     if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
     if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
-    html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot</th><th onclick='sortTable(this, 2)'>Catalog Num</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th><th>Status</th></tr>"
+    
+    html = "<table><tr><th onclick='sortTable(this, 0)'>Product</th><th onclick='sortTable(this, 1)'>Barcode/Lot</th><th onclick='sortTable(this, 2)'>Catalog Num</th><th onclick='sortTable(this, 3)'>Expiry Date</th><th onclick='sortTable(this, 4)'>Received Date</th><th>Status</th><th>Notes</th></tr>"
+    
     for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p):
         safe_bc = str(r[1]).replace("'", "\\'")
         cat_num = str(r[4]).strip()
@@ -951,20 +998,53 @@ def load_inventory_table(*args, **kwargs):
         safe_recv = recv_date.replace("'", "\\'")
         safe_stat = str(r[7]).replace("'", "\\'")
         
+        safe_notes = str(r[8]).strip() if (len(r) > 8 and r[8]) else ""
+        safe_notes_html = safe_notes.replace('"', '&quot;').replace('<','&lt;')
+        safe_notes_js = safe_notes.replace("'", "\\'").replace('"', '&quot;').replace('<','&lt;')
+        display_notes = "📝" if safe_notes else ""
+        
         safe_prod_title = str(r[3]).replace('"', '&quot;').replace('<','&lt;')
         safe_bc_title = str(r[1]).replace('"', '&quot;').replace('<','&lt;')
         safe_cat_num_title = cat_num.replace('"', '&quot;').replace('<','&lt;')
         
         c = "row-flagged" if r[7] == "Flagged" else ""
-        attr = f"onclick=\"selectItemForEdit({r[0]}, '{safe_bc}', {r[2]}, '{safe_lot}', '{safe_exp}', '{safe_recv}', '{safe_stat}')\"" if current_user['role'] == 'admin' else ""
-        html += f"<tr class='{c}' {attr}><td title=\"{safe_prod_title}\">{str(r[3]).replace('<','&lt;')}</td><td title=\"{safe_bc_title}\">{str(r[1]).replace('<','&lt;')}</td><td title=\"{safe_cat_num_title}\">{cat_num.replace('<','&lt;')}</td><td>{exp_date.replace('<','&lt;')}</td><td>{recv_date.replace('<','&lt;')}</td><td>{str(r[7]).replace('<','&lt;')}</td></tr>"
+        attr = f"onclick=\"selectItemForEdit({r[0]}, '{safe_bc}', {r[2]}, '{safe_lot}', '{safe_exp}', '{safe_recv}', '{safe_stat}', '{safe_notes_js}')\"" if current_user['role'] == 'admin' else ""
+        
+        html += f"<tr class='{c}' {attr}><td title=\"{safe_prod_title}\">{str(r[3]).replace('<','&lt;')}</td><td title=\"{safe_bc_title}\">{str(r[1]).replace('<','&lt;')}</td><td title=\"{safe_cat_num_title}\">{cat_num.replace('<','&lt;')}</td><td>{exp_date.replace('<','&lt;')}</td><td>{recv_date.replace('<','&lt;')}</td><td>{str(r[7]).replace('<','&lt;')}</td><td title=\"{safe_notes_html}\" style=\"font-size:16px;\">{display_notes}</td></tr>"
     document.getElementById("inventory-table-container").innerHTML = html + "</table>"
+
+def export_inventory_csv(*args, **kwargs):
+    cat = document.getElementById("inv-cat-filter").value.strip().lower()
+    prod = document.getElementById("inv-prod-filter").value.strip().lower()
+    stat = document.getElementById("inv-status-filter").value
+    bc = document.getElementById("inv-bc-filter").value.strip().lower()
+    
+    q = "SELECT c.product_name, i.barcode_lot_number, i.catalog_number, i.expiry_date, i.received_date, i.status, i.notes FROM Inventory i JOIN Catalog c ON i.catalog_id = c.catalog_id WHERE 1=1"
+    p = []
+    if stat != "All": q += " AND i.status = ?"; p.append(stat)
+    if bc: q += " AND LOWER(i.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
+    if cat: q += " AND LOWER(c.category) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(c.product_name) LIKE ?"; p.append(f"%{prod}%")
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Product Name', 'Barcode/Lot Number', 'Catalog Number', 'Expiry Date', 'Received Date', 'Status', 'Notes'])
+    
+    for r in db_conn.cursor().execute(q + " ORDER BY i.received_date DESC, i.item_id DESC", p):
+        cat_num = str(r[2]).strip() or "/"
+        exp_date = str(r[3]).strip() or "/"
+        recv_date = str(r[4]).strip() or "/"
+        notes = str(r[6]).strip() if (len(r) > 6 and r[6]) else ""
+        writer.writerow([str(r[0]), str(r[1]), cat_num, exp_date, recv_date, str(r[5]), notes])
+        
+    js.window.downloadCSV(output.getvalue(), "Inventory_Export.csv")
 
 def update_item(*args, **kwargs):
     id = document.getElementById("edit-id").value; bc = document.getElementById("edit-barcode").value.strip(); cat = document.getElementById("edit-product").value
     lot = document.getElementById("edit-lot").value.strip()
     if not lot: lot = "/"
     exp = document.getElementById("edit-exp").value or "/"; recv = document.getElementById("edit-recv").value or "/"; stat = document.getElementById("edit-status").value
+    notes = document.getElementById("edit-notes").value.strip()
     
     if not bc or not cat or not recv or not stat:
         js.alert("🛑 Missing Information! Please fill in all required fields.")
@@ -988,9 +1068,9 @@ def update_item(*args, **kwargs):
         cat_res = cur.fetchone()
         prod_name, cat_name = cat_res[0], cat_res[1]
         
-        db_conn.execute("UPDATE Inventory SET barcode_lot_number=?, catalog_id=?, catalog_number=?, expiry_date=?, received_date=?, status=? WHERE item_id=?", (bc, cat, lot, exp, recv, stat, id))
+        db_conn.execute("UPDATE Inventory SET barcode_lot_number=?, catalog_id=?, catalog_number=?, expiry_date=?, received_date=?, status=?, notes=? WHERE item_id=?", (bc, cat, lot, exp, recv, stat, notes, id))
         db_conn.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Manual Edit', ?, ?, ?, ?)", (id, bc, current_user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cat, prod_name, cat_name))
-        db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
+        db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); reset_and_load_audit()
 
 def delete_item(*args, **kwargs):
     if js.confirm("Delete this product from the Inventory?"):
@@ -1003,7 +1083,7 @@ def delete_item(*args, **kwargs):
             cur.execute("INSERT INTO AuditLog (item_id, barcode_lot_number, user_id, action, timestamp, catalog_id, product_snap, category_snap) VALUES (?, ?, ?, 'Deleted', ?, ?, ?, ?)", (item_id, bc, current_user['id'], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cat_id, prod_name, cat_name))
             
         cur.execute("DELETE FROM Inventory WHERE item_id=?", (item_id,))
-        db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); setup_audit_page()
+        db_conn.commit(); mark_dirty(); load_inventory_table(); load_dashboard_home(); reset_and_load_audit()
 
 def setup_catalog_page():
     cur = db_conn.cursor(); cur.execute("SELECT DISTINCT category FROM Catalog WHERE category IS NOT NULL AND category != '' ORDER BY category")
@@ -1106,27 +1186,68 @@ def delete_catalog_item(*args, **kwargs):
         setup_inventory_page()
         setup_audit_page()
 
-# THE FIX: Added UNION queries to safely blend current Catalog names + historical AuditLog names
 def setup_audit_page():
     cur = db_conn.cursor()
-    cur.execute("SELECT category FROM Catalog WHERE category IS NOT NULL AND category != '' UNION SELECT category_snap FROM AuditLog WHERE category_snap IS NOT NULL AND category_snap != '' ORDER BY category")
+    cur.execute("""
+        SELECT DISTINCT name FROM (
+            SELECT category AS name FROM Catalog 
+            UNION 
+            SELECT category_snap AS name FROM AuditLog
+        ) WHERE name IS NOT NULL AND name != '' ORDER BY name ASC
+    """)
     document.getElementById("audit-filt-cat-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall() if r[0]])
     
-    cur.execute("SELECT product_name FROM Catalog WHERE product_name IS NOT NULL AND product_name != '' UNION SELECT product_snap FROM AuditLog WHERE product_snap IS NOT NULL AND product_snap != '' ORDER BY product_name")
+    cur.execute("""
+        SELECT DISTINCT name FROM (
+            SELECT product_name AS name FROM Catalog 
+            UNION 
+            SELECT product_snap AS name FROM AuditLog
+        ) WHERE name IS NOT NULL AND name != '' ORDER BY name ASC
+    """)
     document.getElementById("audit-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall() if r[0]])
+    reset_and_load_audit()
+
+def filter_audit(*args, **kwargs):
+    reset_and_load_audit()
+
+def reset_and_load_audit():
+    global audit_current_page
+    audit_current_page = 0
     load_audit_table()
 
-# THE FIX: Added UNION queries dependent on the chosen Category filter
+def audit_prev_page(*args, **kwargs):
+    global audit_current_page
+    if audit_current_page > 0:
+        audit_current_page -= 1
+        load_audit_table()
+
+def audit_next_page(*args, **kwargs):
+    global audit_current_page
+    audit_current_page += 1
+    load_audit_table()
+
 def audit_cat_changed(*args, **kwargs):
     cat = document.getElementById("audit-filt-cat").value.strip().lower()
     cur = db_conn.cursor()
     if cat:
-        cur.execute("SELECT product_name FROM Catalog WHERE LOWER(category) LIKE ? UNION SELECT product_snap FROM AuditLog WHERE LOWER(category_snap) LIKE ? ORDER BY product_name", (f"%{cat}%", f"%{cat}%"))
+        cur.execute("""
+            SELECT DISTINCT name FROM (
+                SELECT product_name AS name FROM Catalog WHERE LOWER(category) LIKE ?
+                UNION 
+                SELECT product_snap AS name FROM AuditLog WHERE LOWER(category_snap) LIKE ?
+            ) WHERE name IS NOT NULL AND name != '' ORDER BY name ASC
+        """, (f"%{cat}%", f"%{cat}%"))
     else:
-        cur.execute("SELECT product_name FROM Catalog WHERE product_name IS NOT NULL AND product_name != '' UNION SELECT product_snap FROM AuditLog WHERE product_snap IS NOT NULL AND product_snap != '' ORDER BY product_name")
+        cur.execute("""
+            SELECT DISTINCT name FROM (
+                SELECT product_name AS name FROM Catalog 
+                UNION 
+                SELECT product_snap AS name FROM AuditLog
+            ) WHERE name IS NOT NULL AND name != '' ORDER BY name ASC
+        """)
         
     document.getElementById("audit-filt-prod-list").innerHTML = "".join([f"<option value='{str(r[0]).replace('<','&lt;')}'>" for r in cur.fetchall() if r[0]])
-    load_audit_table()
+    reset_and_load_audit()
 
 def audit_clear_filters(*args, **kwargs):
     def safe_clear(elem_id):
@@ -1135,7 +1256,7 @@ def audit_clear_filters(*args, **kwargs):
     el_act = document.getElementById("audit-filt-action")
     if el_act: el_act.value = "All"
     safe_clear("audit-filt-cat"); safe_clear("audit-filt-prod"); safe_clear("audit-filt-barcode"); safe_clear("audit-filt-start"); safe_clear("audit-filt-end")
-    load_audit_table()
+    reset_and_load_audit()
 
 def audit_date_changed(*args, **kwargs):
     start_val = document.getElementById("audit-filt-start").value.strip()
@@ -1145,9 +1266,10 @@ def audit_date_changed(*args, **kwargs):
         js.alert("🛑 Invalid Date! Please enter a valid 4-digit year between 1000 and 9999.")
         return
         
-    load_audit_table()
+    reset_and_load_audit()
 
 def load_audit_table(*args, **kwargs):
+    global audit_current_page
     def safe_get(elem_id, default=""):
         el = document.getElementById(elem_id)
         return el.value if el else default
@@ -1158,20 +1280,77 @@ def load_audit_table(*args, **kwargs):
     
     if act != "All": q += " AND a.action = ?"; p.append(act)
     if bc: q += " AND LOWER(a.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
-    # THE FIX: Allow filtering historically missing categories using category_snap fallback
     if cat: q += " AND LOWER(COALESCE(a.category_snap, c.category, '')) LIKE ?"; p.append(f"%{cat}%")
     if prod: q += " AND LOWER(COALESCE(a.product_snap, c.product_name, '')) LIKE ?"; p.append(f"%{prod}%")
     if start_dt and is_valid_date_range(start_dt): q += " AND date(a.timestamp) >= ?"; p.append(start_dt)
     if end_dt and is_valid_date_range(end_dt): q += " AND date(a.timestamp) <= ?"; p.append(end_dt)
+    
+    q += " ORDER BY a.timestamp DESC LIMIT ? OFFSET ?"
+    p.append(AUDIT_PAGE_SIZE)
+    p.append(audit_current_page * AUDIT_PAGE_SIZE)
+    
     html = "<table><tr><th>Product</th><th>Barcode/Lot number</th><th>Action</th><th>User</th><th>Time</th></tr>"
     try:
-        for r in db_conn.cursor().execute(q + " ORDER BY a.timestamp DESC LIMIT 300", p):
+        fetched_count = 0
+        for r in db_conn.cursor().execute(q, p):
+            fetched_count += 1
             safe_prod_title = str(r[0]).replace('"', '&quot;').replace('<','&lt;')
             safe_bc_title = str(r[1]).replace('"', '&quot;').replace('<','&lt;')
             html += f"<tr><td title=\"{safe_prod_title}\">{str(r[0]).replace('<','&lt;')}</td><td title=\"{safe_bc_title}\">{str(r[1]).replace('<','&lt;')}</td><td>{r[2]}</td><td>{r[3]}</td><td>{r[4]}</td></tr>"
         cont = document.getElementById("audit-table-container")
         if cont: cont.innerHTML = html + "</table>"
+        
+        doc_ind = document.getElementById("audit-page-indicator")
+        if doc_ind: doc_ind.innerText = f"Page {audit_current_page + 1}"
+        
+        btn_p = document.getElementById("btn-audit-prev")
+        if btn_p:
+            if audit_current_page == 0:
+                btn_p.setAttribute("disabled", "true")
+                btn_p.style.opacity = "0.5"
+                btn_p.style.cursor = "not-allowed"
+            else:
+                btn_p.removeAttribute("disabled")
+                btn_p.style.opacity = "1"
+                btn_p.style.cursor = "pointer"
+                
+        btn_n = document.getElementById("btn-audit-next")
+        if btn_n:
+            if fetched_count < AUDIT_PAGE_SIZE:
+                btn_n.setAttribute("disabled", "true")
+                btn_n.style.opacity = "0.5"
+                btn_n.style.cursor = "not-allowed"
+            else:
+                btn_n.removeAttribute("disabled")
+                btn_n.style.opacity = "1"
+                btn_n.style.cursor = "pointer"
+                
     except Exception as e: print(e)
+
+def export_audit_csv(*args, **kwargs):
+    def safe_get(elem_id, default=""):
+        el = document.getElementById(elem_id)
+        return el.value if el else default
+    act = safe_get("audit-filt-action", "All"); cat = safe_get("audit-filt-cat").strip().lower(); prod = safe_get("audit-filt-prod").strip().lower()
+    bc = safe_get("audit-filt-barcode").strip().lower(); start_dt = safe_get("audit-filt-start"); end_dt = safe_get("audit-filt-end")
+    
+    q = """SELECT COALESCE(a.product_snap, c.product_name, 'Unknown'), a.barcode_lot_number, a.action, u.username, a.timestamp FROM AuditLog a LEFT JOIN Users u ON a.user_id = u.user_id LEFT JOIN Catalog c ON a.catalog_id = c.catalog_id WHERE 1=1"""; p = []
+    
+    if act != "All": q += " AND a.action = ?"; p.append(act)
+    if bc: q += " AND LOWER(a.barcode_lot_number) LIKE ?"; p.append(f"%{bc}%")
+    if cat: q += " AND LOWER(COALESCE(a.category_snap, c.category, '')) LIKE ?"; p.append(f"%{cat}%")
+    if prod: q += " AND LOWER(COALESCE(a.product_snap, c.product_name, '')) LIKE ?"; p.append(f"%{prod}%")
+    if start_dt and is_valid_date_range(start_dt): q += " AND date(a.timestamp) >= ?"; p.append(start_dt)
+    if end_dt and is_valid_date_range(end_dt): q += " AND date(a.timestamp) <= ?"; p.append(end_dt)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Product Name', 'Barcode/Lot Number', 'Action', 'User', 'Time'])
+    
+    for r in db_conn.cursor().execute(q + " ORDER BY a.timestamp DESC", p):
+        writer.writerow([str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4])])
+        
+    js.window.downloadCSV(output.getvalue(), "Audit_Export.csv")
 
 def load_user_table(*args, **kwargs):
     document.getElementById("usr-edit-panel").classList.add("hidden"); html = "<table><tr><th>Username</th><th>Role</th></tr>"
@@ -1257,6 +1436,8 @@ def restore_default_settings(*args, **kwargs):
 
 upload_input = document.getElementById("db-upload")
 upload_input.addEventListener("change", create_proxy(load_database))
+document.getElementById("upload-label").innerText = "Select Database File"
+upload_input.removeAttribute("disabled")
     </script>
 </body>
 </html>
